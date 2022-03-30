@@ -12,7 +12,7 @@ from datetime import datetime
 from tqdm import tqdm
 from scipy.signal import savgol_filter
 
-path = os.path.abspath('./test')
+path = os.path.abspath('/Users/logan/Documents/Real_Documents/Grad_School/Research/SPARCS/RGA_data/3.18.22')
 folder = os.listdir(path)
         
 head_pirani = []

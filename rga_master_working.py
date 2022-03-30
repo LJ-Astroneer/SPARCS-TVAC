@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 18 16:07:56 2021
+Created on Sat Mar 19 17:56:26 2022
 
 @author: logan
-
-The master code to do all of the things that the RGA data might need to do
-Codes in Master Currently: total_pressure_mk2
 """
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -14,7 +11,7 @@ import os
 from datetime import datetime
 from tqdm import tqdm
 from scipy.signal import savgol_filter
-#%%
+
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
 The big loop basically turns each file into an array of text lines, it is searching for 3 entries in the header. First is the pirani pressure reading in the header, the position of that heading is then used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier status becasue if the EM is on then the pressure values will need to be corrected to be comparable to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the filalment to determine when the quadrapole is turned on and therefore the total pressure is needed instead of pirani. The relevant data is put into arrays that are then transformed into their appropriate data types.
@@ -28,9 +25,10 @@ head_totalp = []
 data = []
 head_time = []
 em_data = []
-em_headers = []
 filament = []
-
+em_track = []
+num_file = []
+j = 0
 for entry in tqdm(folder, desc='Reading Files',ncols=75):
     file = []
     str_file = []
@@ -48,15 +46,24 @@ for entry in tqdm(folder, desc='Reading Files',ncols=75):
     for i, elem in enumerate(str_file):
         if 'EnableElectronMultiplier="0"' in elem:
             d_start = p_i+5
-            data.extend(file[d_start:len(file)])   
+            data.extend(file[d_start:len(file)])
+            tracker = [1]*len(file[d_start:len(file)])
+            em_track.extend(tracker)
+            nums = [j]*len(file[d_start:len(file)])
+            num_file.extend(nums)
         if 'EnableElectronMultiplier="1"' in elem:
             d_start = p_i+5
-            em_data.extend(file[d_start:len(file)])
-            em_headers.append(entry)
+            data.extend(file[d_start:len(file)])
+            tracker = [1000]*len(file[d_start:len(file)])
+            em_track.extend(tracker)
+            nums = [j]*len(file[d_start:len(file)])
+            num_file.extend(nums)
     for i, elem in enumerate(str_file):
         if 'FilamentStatus' in elem:
            p_i = i
     filament.append(str_file[p_i][24])
+    j+=1
+
 head_pirani = np.asarray(head_pirani)
 head_pirani = head_pirani.astype(np.float64)
 head_totalp = np.asarray(head_totalp)
@@ -67,8 +74,10 @@ This section turns the header time strings and parses them into real date values
 '''    
 start_head_time = datetime.strptime(head_time[0],'%Y/%m/%d %H:%M:%S.%f')
 head_time_from_start = []
+time_list = []
 for entry in tqdm(head_time,desc='Finding Times',ncols=75):
     time = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
+    time_list.append(time)
     time_diff = time - start_head_time
     sec_diff = time_diff.total_seconds()
     head_time_from_start.append(sec_diff)
@@ -123,66 +132,39 @@ if pressure_plot_q == 'y':
 Breaks the data files down into their components of time, atomic mass unit (amu), and partial pressure (pp). Then deletes data and em_data to save memory. Divides the em data by 1000 to account for the sensitivity increase and combines with the other data. 
 
 NOTE: I tried to write a sorting code for the times so that if the EM got turned on and off throughout testing the data would still get put into the right order. Unfortunately the way I have done this is by using the time attached to each measurement, which means you have to parse every single time stamp, which is slow and may be too slow. Only other way I can think is to give all the partial pressures a time based on the file heading instead so there is less parsing but I do now know how I would make that work
+    -did it, see bottom loop made a tracker for the file number the data came from (num_file) then used that to create the time arrays
+    - also means that there is no shufflin/unshuffling to do becasue I also created a file tro track if the em was on (em_track) that putsa 1 for off or 1000 for on. Then just divide pp by that and boom autoadjusted
 '''
-times = []
 amu = []
 pp = []
-em_times = []
-em_amu = []
-em_pp = []
 x = 0
-for row in tqdm(data,desc='Seperating Lines',ncols=75):
-    times.append(row[0])
+for row in tqdm(data,desc='Seperating Partial Pressures',ncols=75):
     amu.append(row[1])
     pp.append(row[2])
     x+=1
-for row in tqdm(em_data,desc='EM Seperating Lines',ncols=75):
-    em_times.append(row[0])
-    em_amu.append(row[1])
-    em_pp.append(row[2])
-#del(data)
-#del(em_data)
-
-# do the math on the em pressures
-em_pp = np.asarray(em_pp)
-em_pp = em_pp.astype(np.float64)
-em_pp = em_pp/1000
-
-#recombine the data sets with non_em followed by em data
-amu_c = np.append(amu, em_amu)
-pp_c = np.append(pp,em_pp)
-times_c = np.append(times,em_times)
-
-#convert time strings to numbers
-start_pp_time = datetime.strptime(times_c[0],'%Y/%m/%d %H:%M:%S.%f')
-pp_time_from_start = []
-times_c_datetime = []
-for entry in tqdm(times_c,desc='Finding Times',ncols=75):
-    time = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
-    times_c_datetime.append(time)
-    time_diff = time - start_head_time
-    sec_diff = time_diff.total_seconds()
-    pp_time_from_start.append(sec_diff)
-pp_time_from_start = np.array(pp_time_from_start)
-pp_hours_from_start = np.divide(pp_time_from_start,3600)
-
-pp_data = np.empty((3,x))
-pp_data[0,:]=pp_time_from_start
-pp_data[1,:]=amu_c
-pp_data[2,:]=pp_c
-pp_data_sorted = pp_data[:,pp_data[0,:].argsort()] #sorts the pp data by the time from start , which should correct for any turning on and off of the EM during testing
-
-amu = np.asarray(pp_data_sorted[1])
+pp = np.asarray(pp)
+pp  = pp.astype(np.float64)
+em_track = np.asarray(em_track)
+em_track = em_track.astype(np.float64)
+pp = pp/em_track
+amu = np.asarray(amu)
 amu = amu.astype(np.float64)
 
-pp = np.asarray(pp_data_sorted[2])
-pp  = pp.astype(np.float64)
+#gets rid of zeros that are noise and not real data, just lack of data
 zeros = np.where(pp == 0.0)
 pp[zeros[0]] = np.nan
-
 starts = np.where(amu == min(amu))
 amu_seq = amu[starts[0][0]:starts[0][1]]
 
+#give values a time using the header for the file it came from
+num_file = np.asarray(num_file)
+pp_times = np.empty(np.shape(amu),dtype=datetime)
+pp_time_from_start = np.empty(np.shape(amu))
+pp_hours_from_start = np.empty(np.shape(amu))
+for i in range(j):
+    pp_times[num_file==i] = time_list[i]
+    pp_time_from_start[num_file==i] = head_time_from_start[i]
+    pp_hours_from_start[num_file==i] = head_hours_from_start[i]
 
 #%%
 '''
@@ -227,43 +209,42 @@ if air_q == 'y':
 '''
 So what this whole thing does is take the individual masses for the sel_amu and it overplots them all over time realtive to the required level they need to reach for a clean chamber.
 '''
+reqs_q = input('Want Req. plots? [y/n]\n')
+if reqs_q=='y':
+    #plots the selected amu over time relative to the req
+    sel_amu = np.arange(1,81) #[83,84,97,98,111,112,127,136,140,142,148]
+    plt.figure()
+    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
+        index = np.where(amu == mass)
+        pres = pp[index[0]]
+        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+    plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
+    plt.yscale('log')
+    plt.title('Partial Gas Pressures > 80 amu vs. Time')
+    plt.ylabel('Partial Pressure (log Torr)')
+    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
+    plt.legend()
+    plt.show()
+     
+    
+    #same but with the higher amus
+    sel_amu = np.arange(80,300)#[150,169,215,228,233,267,281,297,300]
+    plt.figure()
+    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
+        index = np.where(amu == mass)
+        pres = pp[index[0]]
+        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+    plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
+    plt.yscale('log')
+    plt.title('Partial Gas Pressures > 150 amu vs. Time')
+    plt.ylabel('Partial Pressure (log Torr)')
+    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
+    plt.legend()
+    plt.show()
 
-trim_time = head_hours_from_start
-
-#plots the selected amu over time relative to the req
-sel_amu = np.arange(1,81) #[83,84,97,98,111,112,127,136,140,142,148]
-plt.figure()
-for mass in tqdm(sel_amu,desc='plotting',ncols=75):
-    index = np.where(amu == mass)
-    pres = pp[index[0]]
-    plt.plot(trim_time[:len(pres)],pres,label=None)
-plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
-plt.yscale('log')
-plt.title('Partial Gas Pressures > 80 amu vs. Time')
-plt.ylabel('Partial Pressure (log Torr)')
-plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-plt.legend()
-plt.show()
- 
-
-#same but with the higher amus
-sel_amu = np.arange(80,300)#[150,169,215,228,233,267,281,297,300]
-plt.figure()
-for mass in tqdm(sel_amu,desc='plotting',ncols=75):
-    index = np.where(amu == mass)
-    pres = pp[index[0]]
-    plt.plot(trim_time[:len(pres)],pres,label=None)
-plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
-plt.yscale('log')
-plt.title('Partial Gas Pressures > 150 amu vs. Time')
-plt.ylabel('Partial Pressure (log Torr)')
-plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-plt.legend()
-plt.show()
-
-
+#%%
 # sel_amu = np.arange(1,301)#[150,169,215,228,233,267,281,297,300]
-# dataframe = np.empty([len(sel_amu),len(trim_time)])
+# dataframe = np.empty([len(sel_amu),len(head_hours_from_start)])
 # i=0
 # for mass in tqdm(sel_amu,desc='build array',ncols=100):
 #     index = np.where(amu == mass)
