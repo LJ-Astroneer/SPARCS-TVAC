@@ -7,9 +7,7 @@
 
 
 import serial
-import string
 import time
-from datetime import datetime
 
 class Pico(object):
 
