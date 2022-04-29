@@ -256,7 +256,7 @@ So what this whole thing does is take the individual masses for the sel_amu and 
 reqs_q = input('Want Req. plots? [y/n]\n')
 if reqs_q=='y':
     #plots the selected amu over time relative to the req
-    sel_amu = np.arange(1,81) #[83,84,97,98,111,112,127,136,140,142,148]
+    sel_amu = np.arange(80,151) #[83,84,97,98,111,112,127,136,140,142,148]
     plt.figure()
     for mass in tqdm(sel_amu,desc='plotting',ncols=75):
         index = np.where(amu == mass)
@@ -274,7 +274,7 @@ if reqs_q=='y':
      
     
     #same but with the higher amus
-    sel_amu = np.arange(80,300)#[150,169,215,228,233,267,281,297,300]
+    sel_amu = np.arange(151,301)#[150,169,215,228,233,267,281,297,300]
     plt.figure()
     for mass in tqdm(sel_amu,desc='plotting',ncols=75):
         index = np.where(amu == mass)
