@@ -162,6 +162,7 @@ if pressure_plot_q == 'y':
     plt.title('Chamber Pressure vs. Time')
     plt.axvline(x=hour[switch],color='red',linestyle='dotted',label='Pirani to Total pressure switch')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.figtext(0.5,0.7,annotation)
     plt.show()
@@ -189,7 +190,7 @@ if water_q == 'y':
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 air_q = input('Air plot? [y/n]\n')
@@ -207,7 +208,7 @@ if air_q == 'y':
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 nitro_q = input('Nitro plot? [y/n]\n')
@@ -225,7 +226,7 @@ if nitro_q == 'y':
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 #%%
@@ -268,7 +269,7 @@ if reqs_q=='y':
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
      
@@ -286,6 +287,7 @@ if reqs_q=='y':
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 
