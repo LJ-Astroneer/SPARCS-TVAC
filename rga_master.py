@@ -58,8 +58,8 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
             nums = [j]*len(file[d_start:len(file)])
             num_file.extend(nums)
     for i, elem in enumerate(str_file):
-        if 'FilamentStatus' in elem:
-           p_i = i
+         if 'FilamentStatus' in elem:
+             p_i = i
     filament.append(str_file[p_i][24])
     j+=1
 
