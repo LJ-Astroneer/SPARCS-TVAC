@@ -12,7 +12,6 @@ from datetime import datetime
 from tqdm import tqdm
 import time
 t0 = time.time()
-
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
 The big loop basically turns each file into an array of text lines, it is searching for 3 entries in the header. First is the pirani pressure reading in the header, the position of that heading is then used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier status becasue if the EM is on then the pressure values will need to be corrected to be comparable to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the filalment to determine when the quadrapole is turned on and therefore the total pressure is needed instead of pirani. The relevant data is put into arrays that are then transformed into their appropriate data types.
@@ -29,41 +28,40 @@ em_data = []
 filament = []
 em_track = []
 num_file = []
-amu=[]
-pp=[]
-pp_times=[]
 j = 0
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
-    p_i = 318 #the line where the pirani data starts
-    t_i = p_i+1 #line where total pressure is
-    h_i = p_i+5 #line where header time is
-    d_start = p_i+5 #line where the partial pressure data starts
-    f_i = 315 #the line where the filament status is
-    line_num = 0
-    with open(path+'\\'+entry, 'r') as file:
-        text = file.readlines()
-        em_state = int(text[40][-3])
-        head_pirani.append(text[p_i][25:-2])
-        head_totalp.append(text[t_i][24:-2])
-        head_time.append(text[h_i][0:23])
-        filament.append(text[f_i][22])
-        
-        data = text[d_start:]
-        data_split = []
-        for line in data:
-            l = line.split(',')
-            data_split.append(l)  
-        file_pp_times = [item[0] for item in data_split]
-        file_amu = [float(item[1]) for item in data_split]
-        if em_state == 1:
-            file_pp = [float(item[2])/1000 for item in data_split]
-        else:
-            file_pp = [float(item[2]) for item in data_split]
-        nums = [j]*(len(text)-d_start)
-    pp_times.extend(file_pp_times)
-    amu.extend(file_amu)
-    pp.extend(file_pp)
-    num_file.extend(nums)
+    file = []
+    str_file = []
+    with open(path+'\\'+entry, 'r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        for line in csv_reader:
+            file.append(line)
+            str_file.append(str(line))
+    for i, elem in enumerate(str_file):
+        if 'PiraniPressureOut' in elem:
+            p_i = i
+    head_pirani.append(str_file[p_i][27:-3])
+    head_totalp.append(str_file[p_i+1][26:-3])
+    head_time.append(str_file[p_i+5][2:25])
+    for i, elem in enumerate(str_file):
+        if 'EnableElectronMultiplier="0"' in elem:
+            d_start = p_i+5
+            data.extend(file[d_start:len(file)])
+            tracker = [1]*len(file[d_start:len(file)])
+            em_track.extend(tracker)
+            nums = [j]*len(file[d_start:len(file)])
+            num_file.extend(nums)
+        if 'EnableElectronMultiplier="1"' in elem:
+            d_start = p_i+5
+            data.extend(file[d_start:len(file)])
+            tracker = [1000]*len(file[d_start:len(file)])
+            em_track.extend(tracker)
+            nums = [j]*len(file[d_start:len(file)])
+            num_file.extend(nums)
+    for i, elem in enumerate(str_file):
+         if 'FilamentStatus' in elem:
+             p_i = i
+    filament.append(str_file[p_i][24])
     j+=1
 
 head_pirani = np.asarray(head_pirani)
@@ -118,12 +116,18 @@ NOTE: I tried to write a sorting code for the times so that if the EM got turned
     -did it, see bottom loop made a tracker for the file number the data came from (num_file) then used that to create the time arrays
     - also means that there is no shufflin/unshuffling to do becasue I also created a file tro track if the em was on (em_track) that putsa 1 for off or 1000 for on. Then just divide pp by that and boom autoadjusted
 '''
-
+amu = []
+pp = []
+x = 0
+for row in tqdm(data,desc='Seperating Partial Pressures',ncols=100):
+    amu.append(row[1])
+    pp.append(row[2])
+    x+=1
 pp = np.asarray(pp)
 pp  = pp.astype(np.float64)
-# em_track = np.asarray(em_track)
-# em_track = em_track.astype(np.float64)
-# pp = pp/em_track
+em_track = np.asarray(em_track)
+em_track = em_track.astype(np.float64)
+pp = pp/em_track
 amu = np.asarray(amu)
 amu = amu.astype(np.float64)
 
@@ -133,15 +137,15 @@ pp[zeros[0]] = np.nan
 starts = np.where(amu == min(amu))
 amu_seq = amu[starts[0][0]:starts[0][1]]
 
-# #give values a time using the header for the file it came from
-# num_file = np.asarray(num_file)
-# pp_times = np.empty(np.shape(amu),dtype=datetime)
-# pp_time_from_start = np.empty(np.shape(amu))
-# pp_hours_from_start = np.empty(np.shape(amu))
-# for i in tqdm(range(j),desc='Sorting Partial Pressures',ncols=100):
-#     pp_times[num_file==i] = time_list[i]
-#     pp_time_from_start[num_file==i] = head_time_from_start[i]
-#     pp_hours_from_start[num_file==i] = head_hours_from_start[i]
+#give values a time using the header for the file it came from
+num_file = np.asarray(num_file)
+pp_times = np.empty(np.shape(amu),dtype=datetime)
+pp_time_from_start = np.empty(np.shape(amu))
+pp_hours_from_start = np.empty(np.shape(amu))
+for i in tqdm(range(j),desc='Sorting Partial Pressures',ncols=100):
+    pp_times[num_file==i] = time_list[i]
+    pp_time_from_start[num_file==i] = head_time_from_start[i]
+    pp_hours_from_start[num_file==i] = head_hours_from_start[i]
 
 #%% hails from total_pressure_mk2
 '''
@@ -160,8 +164,8 @@ if pressure_plot_q == 'y':
     plt.axvline(x=hour[switch],color='red',linestyle='dotted',label='Pirani to Total pressure switch')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
     plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
-    plt.plot([], [], ' ', label=annotation)
-    plt.legend(loc='upper right')
+    plt.legend()
+    plt.figtext(0.5,0.7,annotation)
     plt.show()
 
 
@@ -236,15 +240,16 @@ if new_q == 'y':
     i=0
     scan = []
     plt.figure()
-    plt.plot(file_amu,file_pp)
+    for mass in tqdm(seq,desc='plotting',ncols=75):
+        i+=1
+        index = np.where(amu == mass)
+        scan.append(pp[index[0][-1]])
+    scan = np.asarray(scan)
+    plt.scatter(seq,scan,marker='.',)
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
-    if em_state == 1:
-        plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
-    else:
-        plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
     plt.show()
 #%%
 '''
