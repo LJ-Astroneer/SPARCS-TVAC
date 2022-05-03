@@ -10,6 +10,8 @@ import csv
 import os
 from datetime import datetime
 from tqdm import tqdm
+import time
+t0 = time.time()
 
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
@@ -52,10 +54,11 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
             l = line.split(',')
             data_split.append(l)  
         file_pp_times = [item[0] for item in data_split]
-        file_amu = [int(item[1]) for item in data_split]
-        file_pp = [float(item[2]) for item in data_split]
+        file_amu = [float(item[1]) for item in data_split]
         if em_state == 1:
-            file_pp = file_pp/1000
+            file_pp = [float(item[2])/1000 for item in data_split]
+        else:
+            file_pp = [float(item[2]) for item in data_split]
         nums = [j]*(len(text)-d_start)
     pp_times.extend(file_pp_times)
     amu.extend(file_amu)
@@ -75,9 +78,9 @@ start_head_time = datetime.strptime(head_time[0],'%Y/%m/%d %H:%M:%S.%f')
 head_time_from_start = []
 time_list = []
 for entry in tqdm(head_time,desc='Finding Times',ncols=75):
-    time = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
-    time_list.append(time)
-    time_diff = time - start_head_time
+    time_entry = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
+    time_list.append(time_entry)
+    time_diff = time_entry - start_head_time
     sec_diff = time_diff.total_seconds()
     head_time_from_start.append(sec_diff)
 head_time_from_start = np.array(head_time_from_start)
@@ -98,9 +101,9 @@ zeros = np.where(allpressure == 0.0)
 #pressure = np.delete(allpressure,zeros[0])
 pressure = allpressure.copy()
 pressure[zeros[0]] = np.nan
-#time = np.delete(alltime, zeros[0])
-time = alltime.copy()
-time[zeros[0]] = np.nan
+#times = np.delete(alltime, zeros[0])
+times = alltime.copy()
+times[zeros[0]] = np.nan
 # date = np.delete(alldate, zeros[0])
 date = alldate.copy()
 date[zeros[0]] = np.nan
@@ -157,8 +160,8 @@ if pressure_plot_q == 'y':
     plt.axvline(x=hour[switch],color='red',linestyle='dotted',label='Pirani to Total pressure switch')
     plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
     plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
-    plt.legend()
-    plt.figtext(0.5,0.7,annotation)
+    plt.plot([], [], ' ', label=annotation)
+    plt.legend(loc='upper right')
     plt.show()
 
 
@@ -233,16 +236,15 @@ if new_q == 'y':
     i=0
     scan = []
     plt.figure()
-    for mass in tqdm(seq,desc='plotting',ncols=75):
-        i+=1
-        index = np.where(amu == mass)
-        scan.append(pp[index[0][-1]])
-    scan = np.asarray(scan)
-    plt.scatter(seq,scan,marker='.',)
+    plt.plot(file_amu,file_pp)
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
+    if em_state == 1:
+        plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
+    else:
+        plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
     plt.show()
 #%%
 '''
@@ -285,3 +287,7 @@ if reqs_q=='y':
     plt.legend()
     plt.show()
 
+#%%
+t1 = time.time()
+total = t1-t0
+print('\n Time to run: {:.2f} sec'.format(total))
