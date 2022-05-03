@@ -27,36 +27,39 @@ em_data = []
 filament = []
 em_track = []
 num_file = []
+amu=[]
+pp=[]
+pp_times=[]
 j = 0
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
-    file = []
-    str_file = []
     p_i = 318 #the line where the pirani data starts
     t_i = p_i+1 #line where total pressure is
     h_i = p_i+5 #line where header time is
     d_start = p_i+5 #line where the partial pressure data starts
     f_i = 315 #the line where the filament status is
     line_num = 0
-    with open(path+'\\'+entry, 'r') as csv_file:
-        csv_text = csv.reader(csv_file)
-        for line in csv_text:
-            # if line_num == 40:
-            #     if 'EnableElectronMultiplier="0"' in line:
-            #         tracker = [1]*len(file[d_start:len(file)])
-            #     elif 'EnableElectronMultiplier="1"' in line:
-            #         tracker = [1000]*len(file[d_start:len(file)])
-            if line_num == p_i:
-                head_pirani.append(line[0][27:-3])
-            if line_num == t_i:
-                head_totalp.append(line[0][26:-3])
-            if line_num == h_i:
-                head_time.append(line[0][2:25])
-            if line_num == f_i:
-                filament.append(line[0][24])
-            line_num += 1
-    data.extend(file[d_start:len(file)])
-    em_track.extend(tracker)
-    nums = [j]*len(file[d_start:len(file)])
+    with open(path+'\\'+entry, 'r') as file:
+        text = file.readlines()
+        em_state = int(text[40][-3])
+        head_pirani.append(text[p_i][25:-2])
+        head_totalp.append(text[t_i][24:-2])
+        head_time.append(text[h_i][0:23])
+        filament.append(text[f_i][22])
+        
+        data = text[d_start:]
+        data_split = []
+        for line in data:
+            l = line.split(',')
+            data_split.append(l)  
+        file_pp_times = [item[0] for item in data_split]
+        file_amu = [int(item[1]) for item in data_split]
+        file_pp = [float(item[2]) for item in data_split]
+        if em_state == 1:
+            file_pp = file_pp/1000
+        nums = [j]*(len(text)-d_start)
+    pp_times.extend(file_pp_times)
+    amu.extend(file_amu)
+    pp.extend(file_pp)
     num_file.extend(nums)
     j+=1
 
@@ -112,18 +115,12 @@ NOTE: I tried to write a sorting code for the times so that if the EM got turned
     -did it, see bottom loop made a tracker for the file number the data came from (num_file) then used that to create the time arrays
     - also means that there is no shufflin/unshuffling to do becasue I also created a file tro track if the em was on (em_track) that putsa 1 for off or 1000 for on. Then just divide pp by that and boom autoadjusted
 '''
-amu = []
-pp = []
-x = 0
-for row in tqdm(data,desc='Seperating Partial Pressures',ncols=100):
-    amu.append(row[1])
-    pp.append(row[2])
-    x+=1
+
 pp = np.asarray(pp)
 pp  = pp.astype(np.float64)
-em_track = np.asarray(em_track)
-em_track = em_track.astype(np.float64)
-pp = pp/em_track
+# em_track = np.asarray(em_track)
+# em_track = em_track.astype(np.float64)
+# pp = pp/em_track
 amu = np.asarray(amu)
 amu = amu.astype(np.float64)
 
@@ -133,15 +130,15 @@ pp[zeros[0]] = np.nan
 starts = np.where(amu == min(amu))
 amu_seq = amu[starts[0][0]:starts[0][1]]
 
-#give values a time using the header for the file it came from
-num_file = np.asarray(num_file)
-pp_times = np.empty(np.shape(amu),dtype=datetime)
-pp_time_from_start = np.empty(np.shape(amu))
-pp_hours_from_start = np.empty(np.shape(amu))
-for i in tqdm(range(j),desc='Sorting Partial Pressures',ncols=100):
-    pp_times[num_file==i] = time_list[i]
-    pp_time_from_start[num_file==i] = head_time_from_start[i]
-    pp_hours_from_start[num_file==i] = head_hours_from_start[i]
+# #give values a time using the header for the file it came from
+# num_file = np.asarray(num_file)
+# pp_times = np.empty(np.shape(amu),dtype=datetime)
+# pp_time_from_start = np.empty(np.shape(amu))
+# pp_hours_from_start = np.empty(np.shape(amu))
+# for i in tqdm(range(j),desc='Sorting Partial Pressures',ncols=100):
+#     pp_times[num_file==i] = time_list[i]
+#     pp_time_from_start[num_file==i] = head_time_from_start[i]
+#     pp_hours_from_start[num_file==i] = head_hours_from_start[i]
 
 #%% hails from total_pressure_mk2
 '''
