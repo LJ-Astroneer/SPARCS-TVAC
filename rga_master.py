@@ -266,6 +266,23 @@ if reqs_q=='y':
     plt.legend()
     plt.show()
 
+misc_q = input('Want Misc. plots? [y/n]\n')
+if misc_q=='y':
+    sel_amu = np.arange(1,80)
+    plt.figure()
+    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
+        index = np.where(amu == mass)
+        pres = pp[index[0]]
+        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+    plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
+    plt.title('Partial Gas Pressures < 80 amu vs. Time')
+    plt.ylabel('Partial Pressure (log Torr)')
+    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
+    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    plt.legend()
+    plt.show()
 #%% Just timing things
 t1 = time.time()
 total = t1-t0
