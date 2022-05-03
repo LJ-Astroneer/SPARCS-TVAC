@@ -10,7 +10,8 @@ import csv
 import os
 from datetime import datetime
 from tqdm import tqdm
-
+import time
+t0 = time.time()
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
 The big loop basically turns each file into an array of text lines, it is searching for 3 entries in the header. First is the pirani pressure reading in the header, the position of that heading is then used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier status becasue if the EM is on then the pressure values will need to be corrected to be comparable to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the filalment to determine when the quadrapole is turned on and therefore the total pressure is needed instead of pirani. The relevant data is put into arrays that are then transformed into their appropriate data types.
@@ -75,9 +76,9 @@ start_head_time = datetime.strptime(head_time[0],'%Y/%m/%d %H:%M:%S.%f')
 head_time_from_start = []
 time_list = []
 for entry in tqdm(head_time,desc='Finding Times',ncols=75):
-    time = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
-    time_list.append(time)
-    time_diff = time - start_head_time
+    time_entry = datetime.strptime(entry,'%Y/%m/%d %H:%M:%S.%f')
+    time_list.append(time_entry)
+    time_diff = time_entry - start_head_time
     sec_diff = time_diff.total_seconds()
     head_time_from_start.append(sec_diff)
 head_time_from_start = np.array(head_time_from_start)
@@ -98,9 +99,9 @@ zeros = np.where(allpressure == 0.0)
 #pressure = np.delete(allpressure,zeros[0])
 pressure = allpressure.copy()
 pressure[zeros[0]] = np.nan
-#time = np.delete(alltime, zeros[0])
-time = alltime.copy()
-time[zeros[0]] = np.nan
+#times = np.delete(alltime, zeros[0])
+times = alltime.copy()
+times[zeros[0]] = np.nan
 # date = np.delete(alldate, zeros[0])
 date = alldate.copy()
 date[zeros[0]] = np.nan
@@ -291,3 +292,7 @@ if reqs_q=='y':
     plt.legend()
     plt.show()
 
+#%%
+t1 = time.time()
+total = t1-t0
+print('\n Time to run: {:.2f} sec'.format(total))
