@@ -16,23 +16,22 @@ t0 = time.time()
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
 The big loop basically turns each file into an array of text lines, it is searching for 3 entries in the header. First is the pirani pressure reading in the header, the position of that heading is then used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier status becasue if the EM is on then the pressure values will need to be corrected to be comparable to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the filalment to determine when the quadrapole is turned on and therefore the total pressure is needed instead of pirani. The relevant data is put into arrays that are then transformed into their appropriate data types.
-'''
-date = input('What folder?\n')
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
-path = os.path.abspath(path)
-folder = os.listdir(path)        
+'''   
 head_pirani = []
 head_totalp = []
 data = []
 head_time = []
-em_data = []
 filament = []
-em_track = []
 num_file = []
 amu=[]
 pp=[]
 pp_times=[]
 j = 0
+
+date = input('What folder?\n')
+path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = os.path.abspath(path)
+folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
     p_i = 318 #the line where the pirani data starts
     t_i = p_i+1 #line where total pressure is
@@ -66,11 +65,18 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
     num_file.extend(nums)
     j+=1
 
+'''
+Convert everything into the right data type and array
+'''
 head_pirani = np.asarray(head_pirani)
 head_pirani = head_pirani.astype(np.float64)
 head_totalp = np.asarray(head_totalp)
 head_totalp = head_totalp.astype(np.float64)
 filament = np.asarray(filament)
+pp = np.asarray(pp)
+pp  = pp.astype(np.float64)
+amu = np.asarray(amu)
+amu = amu.astype(np.float64)
 '''
 This section turns the header time strings and parses them into real date values to do the math that converts the time of a file to the time from the start of the run in both seconds and hours.
 '''    
@@ -98,52 +104,21 @@ alldate = np.array(head_time)
 Did this becasue 0.0s would show up in the data for unknown reasons or becasue there were gaps in time? Either way these would cause large spikes in the data that did not really mean anything and made the plot look terrible. This removes those indexes. Also these lines remove the 0.000 startup error files from the RGA, when you first start recording the header output numbers are all 0 and useless for the first file.
 '''
 zeros = np.where(allpressure == 0.0)
-#pressure = np.delete(allpressure,zeros[0])
 pressure = allpressure.copy()
 pressure[zeros[0]] = np.nan
-#times = np.delete(alltime, zeros[0])
 times = alltime.copy()
 times[zeros[0]] = np.nan
-# date = np.delete(alldate, zeros[0])
 date = alldate.copy()
 date[zeros[0]] = np.nan
-#hour = np.delete(allhour, zeros[0])
 hour = allhour.copy()
 hour[zeros[0]] = np.nan
-#%%
-'''
-Breaks the data files down into their components of time, atomic mass unit (amu), and partial pressure (pp). Then deletes data and em_data to save memory. Divides the em data by 1000 to account for the sensitivity increase and combines with the other data. 
-
-NOTE: I tried to write a sorting code for the times so that if the EM got turned on and off throughout testing the data would still get put into the right order. Unfortunately the way I have done this is by using the time attached to each measurement, which means you have to parse every single time stamp, which is slow and may be too slow. Only other way I can think is to give all the partial pressures a time based on the file heading instead so there is less parsing but I do now know how I would make that work
-    -did it, see bottom loop made a tracker for the file number the data came from (num_file) then used that to create the time arrays
-    - also means that there is no shufflin/unshuffling to do becasue I also created a file tro track if the em was on (em_track) that putsa 1 for off or 1000 for on. Then just divide pp by that and boom autoadjusted
-'''
-
-pp = np.asarray(pp)
-pp  = pp.astype(np.float64)
-# em_track = np.asarray(em_track)
-# em_track = em_track.astype(np.float64)
-# pp = pp/em_track
-amu = np.asarray(amu)
-amu = amu.astype(np.float64)
-
 #gets rid of zeros that are noise and not real data, just lack of data
 zeros = np.where(pp == 0.0)
 pp[zeros[0]] = np.nan
 starts = np.where(amu == min(amu))
 amu_seq = amu[starts[0][0]:starts[0][1]]
 
-# #give values a time using the header for the file it came from
-# num_file = np.asarray(num_file)
-# pp_times = np.empty(np.shape(amu),dtype=datetime)
-# pp_time_from_start = np.empty(np.shape(amu))
-# pp_hours_from_start = np.empty(np.shape(amu))
-# for i in tqdm(range(j),desc='Sorting Partial Pressures',ncols=100):
-#     pp_times[num_file==i] = time_list[i]
-#     pp_time_from_start[num_file==i] = head_time_from_start[i]
-#     pp_hours_from_start[num_file==i] = head_hours_from_start[i]
-
-#%% hails from total_pressure_mk2
+#%% 
 '''
 Plots the pressure in the chamber over time, makes a line for the switchover point, and inserts a note about the lowest pressure reached and the total time run.
 '''
@@ -164,7 +139,6 @@ if pressure_plot_q == 'y':
     plt.legend(loc='upper right')
     plt.show()
 
-
 #%%
 '''
 The Code below plots the data only at full amu values rather than partial values.
@@ -183,6 +157,7 @@ if water_q == 'y':
         pres = pp[index[0]]
         plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for H20 species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
@@ -201,6 +176,7 @@ if air_q == 'y':
         pres = pp[index[0]]
         plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Air species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
@@ -219,6 +195,7 @@ if nitro_q == 'y':
         pres = pp[index[0]]
         plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Nitrogen species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
@@ -228,7 +205,7 @@ if nitro_q == 'y':
     plt.show()
 #%%
 '''
-quick try at plotting the newest full RGA Scan
+Plotting the newest full RGA Scan
 '''
 new_q = input('Newest Mass plot? [y/n]\n')
 if new_q == 'y':
@@ -261,6 +238,7 @@ if reqs_q=='y':
         plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
     plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
     plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Gas Pressures > 80 amu vs. Time')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
@@ -279,6 +257,7 @@ if reqs_q=='y':
         plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
     plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
     plt.yscale('log')
+    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Gas Pressures > 150 amu vs. Time')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
@@ -287,7 +266,7 @@ if reqs_q=='y':
     plt.legend()
     plt.show()
 
-#%%
+#%% Just timing things
 t1 = time.time()
 total = t1-t0
 print('\n Time to run: {:.2f} sec'.format(total))
