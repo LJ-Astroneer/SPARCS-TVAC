@@ -23,7 +23,7 @@ def vacconnect():
 
 def read_pres(ser):
     ser.write(b'#0002UTURBO\r\n')
-    time.sleep(2)   
+    time.sleep(1)   
    
     out = ''
     # loop which reads out mean and stddev when calculations are finished
@@ -62,7 +62,7 @@ def timed_read(minutes):
     ser = vacconnect()
     f = open('Mono_vac_data.txt', 'a')
     while time.time() < t_end:
-        time.sleep(28)
+        # time.sleep(28)
         result = float(read_pres(ser)[1:])
         tt = time.time()
         t1 = time.time()-t0
