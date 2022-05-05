@@ -6,14 +6,20 @@ Created on Mon May  2 12:41:31 2022
 """
 
 #!/usr/bin/env python3
-import minimalmodbus
+import pymodbus
+from pymodbus.pdu import ModbusRequest
+from pymodbus.client.sync import ModbusSerialClient as ModbusClient
+from pymodbus.transaction import ModbusRtuFramer
 
-instrument = minimalmodbus.Instrument('COM', 1)  # port name, slave address (in decimal)
-
-## Read temperature (PV = ProcessValue) ##
-temperature = instrument.read_register(289, 1)  # Registernumber, number of decimals
-print(temperature)
-
-## Change temperature setpoint (SP) ##
-NEW_TEMPERATURE = 95
-instrument.write_register(24, NEW_TEMPERATURE, 1)  # Registernumber, value, number of decimals for storage
+port = 'COM5'
+baudrate = 115200
+client = ModbusClient(
+  method = 'rtu'
+  ,port='COM5'
+  ,baudrate=baudrate
+  ,parity = 'O'
+  ,timeout=1
+  )
+client.connect()
+registers  = client.read_coils(1,1,unit=1)# start_address, count, slave_id
+print (registers)
