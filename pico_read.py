@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-# LASI Lab -- Keithley 6485 Picoammeter Automation
-# Author:  Alex Miller <alexdukemiller@gmail.com> 
+"""
+Created on Mon May  2 12:41:31 2022
 
-# Version = 1.0
-# Date = '1/28/14'
+@author: Logan Jensen
+"""
 
 
 import serial
@@ -43,11 +42,12 @@ class Pico(object):
 
   # function which takes 20 readings, and then records the mean and stddev to 'Data.txt'
   def multi_readings(self):
+    t0=time.time()
     # define a timestamp format
     form = '%Y.%m.%d--%H:%M:%S'
 
     # define a data file
-    f = open('Data.txt', 'a')
+    f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
 
     self.ser.write(('FORM:ELEM READ,TIME' + '\r\n').encode())
     self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
@@ -72,9 +72,13 @@ class Pico(object):
         else:
             out += response.decode('utf-8')
     if out != '':	
+      t1=time.time()
+      total = t1-t0
       f.write(str(out)+'\n')
       print(out)
+      # print(total)
 
 
-p = Pico()
-p.open_connection()
+# p = Pico()
+# p.open_connection()
+#p.setup()

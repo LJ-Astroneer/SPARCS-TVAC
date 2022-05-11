@@ -2,7 +2,7 @@
 """
 Created on Mon Apr 11 15:59:41 2022
 
-@author: sesel
+@author: Logan Jensen
 """
 import time
 import serial
@@ -28,7 +28,7 @@ def read_pres(ser):
     out = ''
     # loop which reads out mean and stddev when calculations are finished
     while ser.inWaiting() > 0:
-        response = ser.read(1)
+        response = ser.read(2)
         response = response.decode("utf-8")
         out += response
     if out != '':	
@@ -60,9 +60,9 @@ def timed_read(minutes):
     t0 = time.time()
     t_end = time.time()+minutes*60
     ser = vacconnect()
-    f = open('Mono_vac_data.txt', 'a')
+    f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\mono_vac_data\Mono_vac_data.txt', 'a')
     while time.time() < t_end:
-        # time.sleep(28)
+        time.sleep(28)
         result = float(read_pres(ser)[1:])
         tt = time.time()
         t1 = time.time()-t0

@@ -2,7 +2,7 @@
 """
 Created on Mon May  2 12:41:31 2022
 
-@author: logan
+@author: Logan Jensen
 """
 
 #!/usr/bin/env python3
