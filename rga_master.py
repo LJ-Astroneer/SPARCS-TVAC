@@ -33,19 +33,25 @@ path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
-    p_i = 318 #the line where the pirani data starts
-    t_i = p_i+1 #line where total pressure is
-    h_i = p_i+5 #line where header time is
-    d_start = p_i+5 #line where the partial pressure data starts
-    f_i = 315 #the line where the filament status is
-    line_num = 0
     with open(path+'\\'+entry, 'r') as file:
         text = file.readlines()
-        em_state = int(text[40][-3])
-        head_pirani.append(text[p_i][25:-2])
-        head_totalp.append(text[t_i][24:-2])
-        head_time.append(text[h_i][0:23])
-        filament.append(text[f_i][22])
+        
+        #becasue we do not know the full content of these lines, the .index command used below would not work
+        #instead this code filters the file to lines that contain the string, then the line in parsed to pull out the data
+        em_text = list(filter(lambda a: "EnableElectronMultiplier" in a, text))
+        em_state = int(em_text[0][-3])
+        
+        pirani_text = list(filter(lambda a: "PiraniPressureOut" in a, text))
+        head_pirani.append(pirani_text[0][25:-2])
+        
+        totalp_text = list(filter(lambda a: "TotalPressureOut" in a, text))
+        head_totalp.append(totalp_text[0][24:-2])
+        
+        filament_text = list(filter(lambda a: "FilamentStatus" in a, text))
+        filament.append(filament_text[0][22])
+        
+        d_start = text.index('</ConfigurationData>\n')+1 #becasue this is always a line in the text right before the data, use this as a marker
+        head_time.append(text[d_start][0:23]) #just the time from the first data point
         
         data = text[d_start:]
         data_split = []
@@ -133,8 +139,8 @@ if pressure_plot_q == 'y':
     plt.xlabel('Time From Pump Start (Hr)')
     plt.title('Chamber Pressure vs. Time')
     plt.axvline(x=hour[switch],color='red',linestyle='dotted',label='Pirani to Total pressure switch')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.plot([], [], ' ', label=annotation)
     plt.legend(loc='upper right')
     plt.show()
@@ -161,8 +167,8 @@ if water_q == 'y':
     plt.title('Partial Pressures for H20 species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 air_q = input('Air plot? [y/n]\n')
@@ -180,8 +186,8 @@ if air_q == 'y':
     plt.title('Partial Pressures for Air species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 nitro_q = input('Nitro plot? [y/n]\n')
@@ -199,8 +205,8 @@ if nitro_q == 'y':
     plt.title('Partial Pressures for Nitrogen species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 #%%
@@ -242,8 +248,8 @@ if reqs_q=='y':
     plt.title('Partial Gas Pressures > 80 amu vs. Time')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
      
@@ -261,8 +267,8 @@ if reqs_q=='y':
     plt.title('Partial Gas Pressures > 150 amu vs. Time')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 
@@ -279,8 +285,8 @@ if misc_q=='y':
     plt.title('Partial Gas Pressures < 80 amu vs. Time')
     plt.ylabel('Partial Pressure (log Torr)')
     plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
+    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
+    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 #%% Just timing things
