@@ -9,6 +9,7 @@ Mcpherson UV monohcromator and the NIST photodiode and picoammeter. Code has
 been pulled from "pico_read.py" for the picoammeter control and "mono_control.py"
 for the monochromator control. 
 NOTE: you need neither of those codes to run this, it is all here.
+Monochromator home wv is 261.81 nm
 """
 
 import serial
@@ -66,7 +67,7 @@ class Pico(object):
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())
         self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
-        time.sleep(6)      
+        time.sleep(10)      
           
         out = ''
       
@@ -134,10 +135,10 @@ class Mono(object):
             #print(command.encode())
             self.ser.write(command.encode())     
 
-    def wave_scan(self):
-        p = Pico()
-        p.open_connection()
-        p.setup()
+    def wave_scan(self,p):
+        #p = Pico()
+        #p.open_connection()
+        #p.setup()
         input('Turn on Monochromator Lamp, then press [ENTER]')
         f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
         current = float(input('Current Wavelength?\n'))
@@ -171,7 +172,7 @@ class Mono(object):
             wv+=step
             time.sleep(1.5*abs(step)) #small steps are slow on the mono
         rows = zip(wl,avg,std)
-        with open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.csv', 'a') as f:
+        with open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
                 writer.writerow(row)
@@ -182,7 +183,7 @@ class Mono(object):
 '''
 Section 3: What you need to do to get the wave scan running.
 '''
-# # actually sets up the picoammeter, should have photodiode disconnected for zeroing
+# actually sets up the picoammeter, should have photodiode disconnected for zeroing
 # from wavelength_scan import Mono,Pico 
 # p = Pico()
 # p.open_connection() #opens port

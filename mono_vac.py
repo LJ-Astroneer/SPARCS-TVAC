@@ -69,3 +69,24 @@ def timed_read(minutes):
         f.write('\n'+str(tt)+','+str(t1)+','+str(result))
         f.flush()
     ser.close()
+
+'''
+#auto on code
+#00B0UTURBOUDRY6.0E+01
+this is to tell the controller to automatically turn on the turbo gauge when the dry 
+guage gets to 6.0E+1 Torr, so right away basically.
+
+'''
+def read_util(ser):
+    ser.write(b'#00B1UTURBO\r\n')
+    time.sleep(2)   
+   
+    out = ''
+    # loop which reads out mean and stddev when calculations are finished
+    while ser.inWaiting() > 0:
+        response = ser.read(1)
+        response = response.decode("utf-8")
+        out += response
+    if out != '':	
+      print(out)
+    return out
