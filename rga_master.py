@@ -28,7 +28,8 @@ pp=[]
 pp_times=[]
 j = 0
 
-date = input('What folder?\n')
+#date = input('What folder?\n')
+date = '5.5.22'
 path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
