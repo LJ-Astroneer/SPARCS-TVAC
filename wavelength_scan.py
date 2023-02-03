@@ -40,9 +40,9 @@ class Pico(object):
         if self.ser.isOpen() == True:
             print("Picoammeter Connected")
         
-    # def close_connection(self, port='COM9'):
-    #     self.ser.close()
-    #     print(self.ser.isOpen())
+    def close_connection(self, port='COM9'):
+        self.ser.close()
+        
   
     # reset and calibrate the picoammeter for measurements
     def setup(self):
@@ -117,17 +117,9 @@ class Mono(object):
             print("Monochromator Connected")
         Mono.init(self)
     
-    # def close_connection(self,port='COM3'):
-    #     self.ser = serial.Serial(
-    #         	port=port,
-    #         	baudrate=9600,
-    #         	parity=serial.PARITY_NONE,
-    #         	stopbits=serial.STOPBITS_ONE,
-    #         	bytesize=serial.EIGHTBITS,
-    #             timeout=5
-    #         )
-    #     self.ser.close()   
-    #     print(self.ser.isOpen())
+    def close_connection(self,port='COM3'):
+        self.ser.close()   
+        
         
     def read(self):
         out = ''
@@ -200,7 +192,8 @@ class Mono(object):
                 time.sleep(1)
             print("Step Complete")
         rows = zip(wl,avg,std)
-        with open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.csv', 'w',newline='') as f:
+        filename = str(time.time())+'.csv'
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\'+filename, 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
                 writer.writerow(row)
@@ -228,7 +221,8 @@ Section 4: runs the wavelength scan
 '''
 p,m = setup()
 m.wave_scan(p)
-
+m.close_connection()
+p.close_connection()
 #%%
 # current = float(input('Current Wavelength?\n'))
 # start = float(input('Starting Wavelegnth?\n'))
