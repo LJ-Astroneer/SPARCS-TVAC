@@ -37,17 +37,25 @@ class Pico(object):
           stopbits=serial.STOPBITS_ONE,
           timeout=0.1)   
         self.ser.readlines()
-
-  # reset and calibrate the picoammeter for measurements
+        if self.ser.isOpen() == True:
+            print("Picoammeter Connected")
+        
+    # def close_connection(self, port='COM9'):
+    #     self.ser.close()
+    #     print(self.ser.isOpen())
+  
+    # reset and calibrate the picoammeter for measurements
     def setup(self):
+        print("\n\nDettach current source from picoammeter...")
+        input("Press [ENTER] to continue......")   
+        
         self.ser.write(('*RST' + '\r\n').encode())
         self.ser.write((':SYST:ZCH ON' + '\r\n').encode()) 
         self.ser.write((':SENS:CURR:RANG 2e-9' + '\r\n').encode())  
         self.ser.write((':SYST:ZCOR ON' + '\r\n').encode()) 
         self.ser.write((':SENS:CURR:RANG:AUTO ON' + '\r\n').encode()) 
           
-        print("\n\nAttach current source to picoammeter...\n\n")
-        
+        print("\n\nAttach current source to picoammeter...")
         input("Press [ENTER] to continue......")    
           
         self.ser.write((':SYST:ZCH OFF' + '\r\n').encode())
@@ -105,8 +113,21 @@ class Mono(object):
             	bytesize=serial.EIGHTBITS,
                 timeout=5
             )
-        print(self.ser.isOpen())
+        if self.ser.isOpen() == True:
+            print("Monochromator Connected")
         Mono.init(self)
+    
+    # def close_connection(self,port='COM3'):
+    #     self.ser = serial.Serial(
+    #         	port=port,
+    #         	baudrate=9600,
+    #         	parity=serial.PARITY_NONE,
+    #         	stopbits=serial.STOPBITS_ONE,
+    #         	bytesize=serial.EIGHTBITS,
+    #             timeout=5
+    #         )
+    #     self.ser.close()   
+    #     print(self.ser.isOpen())
         
     def read(self):
         out = ''
@@ -115,15 +136,24 @@ class Mono(object):
             response = response.decode("ascii")
             out += response
         if out != '':	
-          print(out)
+          # print(out)
+          return out
     
-    def write(self):
+    def write_prompt(self):
         command = input('Enter desired Command from Table \n')
         full_cmd = str(command)+'\r\n'
         self.ser.write(full_cmd.encode())
         time.sleep(1)
-        Mono.read(self)
-        
+        out = Mono.read(self)
+        return out
+    
+    def write(self,command):
+        full_cmd = str(command)+'\r\n'
+        self.ser.write(full_cmd.encode())
+        time.sleep(1)
+        out = Mono.read(self)
+        return out
+    
     def move(self,nm):
         steps = int(nm*18000)
         if steps < 0:
@@ -136,9 +166,6 @@ class Mono(object):
             self.ser.write(command.encode())     
 
     def wave_scan(self,p):
-        #p = Pico()
-        #p.open_connection()
-        #p.setup()
         input('Turn on Monochromator Lamp, then press [ENTER]')
         f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
         current = float(input('Current Wavelength?\n'))
@@ -152,10 +179,9 @@ class Mono(object):
         to_start = int((start-current))
         if to_start != 0:
             Mono.move(self,to_start)
-            if to_start < 30:
-                time.sleep(abs(to_start*1.5))
-            else:
-                time.sleep(abs(to_start*0.3))
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Starting Wavelength Reached\n")
         #loop through the steps
         wv = start
         avg = ['Average Current (A)']
@@ -170,28 +196,38 @@ class Mono(object):
             std.append(output.split(',')[1])
             Mono.move(self,step)
             wv+=step
-            time.sleep(1.5*abs(step)) #small steps are slow on the mono
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Step Complete")
         rows = zip(wl,avg,std)
         with open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
                 writer.writerow(row)
     def test(self):
-        step = float(input('Step?\n'))
+        step = float(input('Move how Far (nm)?\n'))
         Mono.move(self,step)
+        while Mono.write(self,'^') != '^   0 \r\n':
+            time.sleep(1)
+        print("Step Complete")
 #%%
 '''
-Section 3: What you need to do to get the wave scan running.
+Section 3: Setting up the connections.
 '''
 # actually sets up the picoammeter, should have photodiode disconnected for zeroing
-# from wavelength_scan import Mono,Pico 
-# p = Pico()
-# p.open_connection() #opens port
-# p.setup() #zeros the system
-# m = Mono()
-# m.open_connection()
-# m.wave_scan()
+def setup():
+    p = Pico()
+    p.open_connection() #opens port
+    p.setup() #zeros the system
+    m = Mono()
+    m.open_connection()
+    return p,m
 
+'''
+Section 4: runs the wavelength scan
+'''
+p,m = setup()
+m.wave_scan(p)
 
 #%%
 # current = float(input('Current Wavelength?\n'))
