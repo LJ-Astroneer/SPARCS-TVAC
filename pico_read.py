@@ -22,9 +22,12 @@ class Pico(object):
       timeout=0.1)
 
     #self.ser.open()
-
     self.ser.readlines()
-
+    
+  
+  def close_connection(self, port='COM9'):
+    self.ser.close()    
+      
   # reset and calibrate the picoammeter for measurements
   def setup(self):
     self.ser.write(('*RST' + '\r\n').encode())
@@ -78,7 +81,10 @@ class Pico(object):
       print(out)
       # print(total)
 
-
+'''
+Below are all the function calls that you would use to setup the picoammeter and then close it
+'''
 # p = Pico()
 # p.open_connection()
 # p.setup()
+# p.close_connection()
