@@ -15,18 +15,18 @@ Monochromator home wv is 261.81 nm
 import serial
 import time
 import csv
+import numpy as np
 #%%
 '''
 Section 1: Defining picoammeter functions and setting up the device.
 Modified from pico_read and from Alex Miller's original code.
-
-Goal: Adjust the functions to return data from the pico rather than printing
-        it straight to a file. This will make it easy to create a better file
-        later which includes wavelength values
 '''
 
 class Pico(object):
-
+    '''
+    Open Connection is the code that sets up the serial port connection
+    to the picoammeter.
+    '''
     def open_connection(self, port='COM9'):  
         # configure the serial connections
         self.ser = serial.Serial(
@@ -39,29 +39,30 @@ class Pico(object):
         self.ser.readlines()
         if self.ser.isOpen() == True:
             print("Picoammeter Connected")
-        
+    '''
+    Close connection is needed to ensure the program releases the COM port
+    on completion, otherwise the code may not work with COM port in use
+    '''    
     def close_connection(self, port='COM9'):
         self.ser.close()
-        
-  
-    # reset and calibrate the picoammeter for measurements
+    '''
+    Reset and calibrate the picoammeter for measurements
+    '''
     def setup(self):
         print("\n\nDettach current source from picoammeter...")
-        input("Press [ENTER] to continue......")   
-        
+        input("Press [ENTER] to continue......")    
         self.ser.write(('*RST' + '\r\n').encode())
         self.ser.write((':SYST:ZCH ON' + '\r\n').encode()) 
         self.ser.write((':SENS:CURR:RANG 2e-9' + '\r\n').encode())  
         self.ser.write((':SYST:ZCOR ON' + '\r\n').encode()) 
         self.ser.write((':SENS:CURR:RANG:AUTO ON' + '\r\n').encode()) 
-          
         print("\n\nAttach current source to picoammeter...")
         input("Press [ENTER] to continue......")    
-          
         self.ser.write((':SYST:ZCH OFF' + '\r\n').encode())
         self.ser.write((':SENS:CURR:NPLC 2' + '\r\n').encode())
-
-    # function which takes 20 readings, and then records the mean and stddev to 'Data.txt'
+    '''
+    Multi_readings takes 20 readings, and then records the mean and stddev
+    '''
     def multi_readings(self):
       # define a data file
         self.ser.write(('FORM:ELEM READ,TIME' + '\r\n').encode())
@@ -75,10 +76,8 @@ class Pico(object):
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())
         self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
-        time.sleep(10)      
-          
+        time.sleep(10)         
         out = ''
-      
       # loop which reads out mean and stddev when calculations are finished
         while self.ser.inWaiting() > 0:
             response = self.ser.read(1)
@@ -89,21 +88,27 @@ class Pico(object):
         if out != '':	
           print(out)
         return out #this value can then be parsed with the .split(',') command
-
 #%%
 '''
 Section 2: This section sets up the monochromator in the best ways I know how
     adapted from mono_control.py. I do not fully understand the Class and .self
-    architecture that is used above yet, so for now these are base functions
+    architecture that is used above yet, so if this is rough and ready then 
+    so be it.
 '''
 class Mono(object):
+    '''
+    Initialization code required by the monochromator itself to work
+    '''
     def init(self):
         self.ser.write(b' \r\n') #always start with a space, should return a #, initializes the device
         time.sleep(1)
         self.ser.write(b'X\r\n') #reads current state of variables
         time.sleep(1)
         Mono.read(self)
-        
+    
+    '''
+    Opens the Monochromator serial port
+    '''    
     def open_connection(self,port='COM3'):
         self.ser = serial.Serial(
             	port=port,
@@ -116,11 +121,15 @@ class Mono(object):
         if self.ser.isOpen() == True:
             print("Monochromator Connected")
         Mono.init(self)
-    
+    '''
+    Close command to release the serial port
+    '''
     def close_connection(self,port='COM3'):
         self.ser.close()   
-        
-        
+    '''
+    Read is the command necessary to read the outputs from the monochromator
+    scan controller when it is issued a command     
+    '''     
     def read(self):
         out = ''
         while self.ser.inWaiting() > 0:
@@ -130,7 +139,10 @@ class Mono(object):
         if out != '':	
           # print(out)
           return out
-    
+    '''
+    Write _prompt issues you a prompt to submit any command from the table
+    in the McPherson Scan Controller manual
+    '''
     def write_prompt(self):
         command = input('Enter desired Command from Table \n')
         full_cmd = str(command)+'\r\n'
@@ -138,14 +150,19 @@ class Mono(object):
         time.sleep(1)
         out = Mono.read(self)
         return out
-    
+    '''
+    Same as write_prompt but without the prompting call
+    '''
     def write(self,command):
         full_cmd = str(command)+'\r\n'
         self.ser.write(full_cmd.encode())
         time.sleep(1)
         out = Mono.read(self)
         return out
-    
+    '''
+    Command sequence to move the monochromator grating's stepper motor. There are 18000 steps
+    per nm and there must be an integer number of steps.
+    '''
     def move(self,nm):
         steps = int(nm*18000)
         if steps < 0:
@@ -156,57 +173,58 @@ class Mono(object):
             command = '+'+str(steps)+'\r\n'
             #print(command.encode())
             self.ser.write(command.encode())     
-
-    def wave_scan(self,p):
-        input('Turn on Monochromator Lamp, then press [ENTER]')
-        f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
-        current = float(input('Current Wavelength?\n'))
-        start = float(input('Starting Wavelegnth?\n'))
-        step = float(input('Step?\n'))
-        end = float(input('Final Wavelength?\n'))
-        if end < start:
-            step = step*-1
-        
-        #get to starting location
-        to_start = (start-current)
-        if to_start != 0:
-            Mono.move(self,to_start)
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-            print("Starting Wavelength Reached\n")
-        #loop through the steps
-        wv = start
+    
+    '''
+    This is a custom algorithm to sample the dark current of the picoammeter/photodiode
+    before performing a spectral scan with light. This does not technically make any
+    calls to the monochromator but was esier to put in this class. Data saves to
+    the Darks folder with the time.time() result at start as the filename.
+    '''
+    def dark_scan(self,p,filename):
+        print('\nBegin dark current sampling\n')
+        input('Ensure Monochromator Lamp, RGA, and any other light source are OFF, then press [ENTER]')
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Darks\\'+filename+'_dark.csv', 'a')
+        filt=1
+        wv = 0
         avg = ['Average Current (A)']
         std = ['Standard Deviation']
-        wl = ['Wavelength (nm)']
-        while wv <= end:
-            print('Reading at {:.2f}'.format(wv))
+        wl = ['Sample #']
+        filters = ['Filter used: 1=none, 2=160nm lp, 3=220nm lp, 4=320nm lp']
+        while wv <= 5:
+            print('Dark Sample '+str(wv))
             output = p.multi_readings()
             time.sleep(1) #readout of the photodiode is sometimes janky
             wl.append(wv)
             avg.append(output.split(',')[0])
             std.append(output.split(',')[1])
-            wv+=step
-            if wv <= end:
-                Mono.move(self,step)
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-            print("Step Complete")
-        rows = zip(wl,avg,std)
-        filename = str(time.time())+'.csv'
-        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\'+filename, 'w',newline='') as f:
+            filters.append(filt)
+            wv+=1
+        rows = zip(wl,avg,std,filters)
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Darks\\'+filename+'_dark.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
-                writer.writerow(row)
-                
-    def full_scan(self,p):
+                writer.writerow(row)   
+        dark_median = np.median(list(map(float,avg[1:])))
+        dark_std = np.median(list(map(float,std[1:])))
+        print('Dark current sampling complete, saved to Documents\\pico_data\\Darks\\'+filename+'_dark.csv')
+        return(dark_median,dark_std)            
+    '''
+    This is a custom algorithm to use the monochromator and picoammeter in tandem
+    to fully sample a custom spectrum of light at custom resolution. Follow the
+    prompts and generally it works best if starting wavelength < final wavelength.
+  '''
+    def wave_scan(self,p):
+        filename = str(time.time())
+        dark_median,dark_std = Mono.dark_scan(self,p,filename)
+        print('\nBegin full SPARCS spectrum sampling\n')
         input('Turn on Monochromator Lamp, then press [ENTER]')
+        time.sleep(10)
         input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
-        f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'a')
         current = float(input('Current Wavelength?\n'))
-        start = 116.0
-        step = 1
-        end = 550.0
+        start = float(input('Starting Wavelegnth?\n'))
+        step = float(input('Step?\n'))
+        end = float(input('Final Wavelength?\n'))
         filt = 1
         #get to starting location
         to_start = (start-current)
@@ -214,7 +232,7 @@ class Mono(object):
             Mono.move(self,to_start)
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
-            print("Starting Wavelength: "+start+"nm  Reached\n")
+            print("Starting Wavelength: "+str(start)+"nm  Reached\n")
         #loop through the steps
         wv = start
         avg = ['Average Current (A)']
@@ -245,23 +263,103 @@ class Mono(object):
             print("Step Complete")
       
         rows = zip(wl,avg,std,filters)
-        filename = str(time.time())+'.csv'
-        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\'+filename, 'w',newline='') as f:
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
-                writer.writerow(row)                
-                
+                writer.writerow(row)           
+        
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'a')        
+        avg[1:]=[x-dark_median for x in list(map(float,avg[1:]))]
+        rows = zip(wl,avg,std,filters)
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'w',newline='') as f:
+            writer = csv.writer(f)
+            for row in rows:
+                writer.writerow(row)  
+    
+    '''
+    The Master code for SPARCS operations. This code automatically operates both
+    the dark_scan code and a custom wave_scan code to fully sample the SPARCS
+    bandpass of interest, which is really the full spectrum of the monochromator
+    as built in 2023, 116-550nm. This is the code that will be used most often.
+    Saves dark data to the Darks folder, raw data to the Raw folder, and the 
+    data with dark current subtration to the Dark_subtracted folder. Follow the prompts
+    '''
+    def full_scan(self,p):
+        filename = str(time.time())
+        dark_median,dark_std = Mono.dark_scan(self,p,filename)
+        print('\nBegin full SPARCS spectrum sampling\n')
+        input('Turn on Monochromator Lamp, then press [ENTER]')
+        time.sleep(10)
+        input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'a')
+        current = float(input('Current Wavelength?\n'))
+        start = 116.0
+        step = 1
+        end = 550.0
+        filt = 1
+        #get to starting location
+        to_start = (start-current)
+        if to_start != 0:
+            Mono.move(self,to_start)
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Starting Wavelength: "+str(start)+"nm  Reached\n")
+        #loop through the steps
+        wv = start
+        avg = ['Average Current (A)']
+        std = ['Standard Deviation']
+        wl = ['Wavelength (nm)']
+        filters = ['Filter used: 1=none, 2=160nm lp, 3=220nm lp, 4=320nm lp']
+        while wv <= end:
+            if wv == 160: #160 chosen because the 160 lp is >80% at this point
+                input('Change Monochromator filter to #2, then press [ENTER]')
+                filt = 2
+            if wv == 300: #300 chosen because the 160 lp starts passing light at 150 nm
+                input('Change Monochromator filter to #3, then press [ENTER]')
+                filt = 3
+            if wv == 400: #400 chosen because the 220 lp starts passing light at 200 nm
+                input('Change Monochromator filter to #4, then press [ENTER]')
+                filt = 4
+            print('Reading at {:.2f}'.format(wv))
+            output = p.multi_readings()
+            time.sleep(1) #readout of the photodiode is sometimes janky
+            wl.append(wv)
+            avg.append(output.split(',')[0])
+            std.append(output.split(',')[1])
+            filters.append(filt)
+            Mono.move(self,step)
+            wv+=step
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+      
+        rows = zip(wl,avg,std,filters)
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'w',newline='') as f:
+            writer = csv.writer(f)
+            for row in rows:
+                writer.writerow(row)           
+        
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'a')        
+        avg[1:]=[x-dark_median for x in list(map(float,avg[1:]))]
+        rows = zip(wl,avg,std,filters)
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'w',newline='') as f:
+            writer = csv.writer(f)
+            for row in rows:
+                writer.writerow(row)  
+        print('Scan Complete')
+    '''
+    Small test script to move the monochroamtor specific wavelength distances
+    '''            
     def test(self):
         step = float(input('Move how Far (nm)?\n'))
         Mono.move(self,step)
         while Mono.write(self,'^') != '^   0 \r\n':
             time.sleep(1)
-        print("Step Complete")
-#%%
+        print("Move Complete")
+#%% Everything in this block auto executes the above functions to perform the
+#whole process needed by SPARCS for sampling
 '''
-Section 3: Setting up the connections.
+Section 3: Setting up the connections and picoammeter.
 '''
-# actually sets up the picoammeter, should have photodiode disconnected for zeroing
 def setup():
     p = Pico()
     p.open_connection() #opens port
@@ -271,66 +369,9 @@ def setup():
     return p,m
 
 '''
-Section 4: runs the wavelength scan
+Section 4: The Execution block
 '''
 p,m = setup()
-# m.wave_scan(p)
-# m.close_connection()
-# p.close_connection()
-#%%
-# current = float(input('Current Wavelength?\n'))
-# start = float(input('Starting Wavelegnth?\n'))
-# step = float(input('Step?\n'))
-# end = float(input('Final Wavelength?\n'))
-# if end < start:
-#     step = step*-1
-
-# #get to starting location
-# to_start = int((start-current))
-# if to_start != 0:
-#     move(to_start)
-#     time.sleep(abs(to_start*1.5))
-
-# #loop through the steps
-# wv = start
-# while wv <= end:
-#     print('Reading at {:.2f}'.format(wv))
-#     p.multi_readings()
-#     time.sleep(7) #readout of the photodiode takes about 6.1 seconds, 7 for margin
-#     move(step)
-#     wv+=step
-#     time.sleep(1.5*abs(step)) #small steps are slow on the mono
-#     # if abs(step) <= 10: 
-#     #     time.sleep(1.5*abs(step)) #small steps are slow on the mono
-#     # else:
-#     #     time.sleep(0.6*abs(step)) #60,000 steps/sec = 0.3 s/nm so 0.6 for margin
-
-
-
-#%%
-# def mono_connect():
-#     ser = serial.Serial(
-#     	port='COM3',
-#     	baudrate=9600,
-#     	parity=serial.PARITY_NONE,
-#     	stopbits=serial.STOPBITS_ONE,
-#     	bytesize=serial.EIGHTBITS,
-#         timeout=5
-#     )
-
-#     print(ser.isOpen())
-#     return ser
-
-# def hello():
-#     ser = mono_connect()
-#     ser.write(b' \r\n')
-#     time.sleep(1)   
-   
-#     out = ''
-#     while ser.inWaiting() > 0:
-#         response = ser.read(1)
-#         response = response.decode("utf-8")
-#         out += response
-#     if out != '':	
-#       print(out)
-#     return out
+m.full_scan(p)
+m.close_connection()
+p.close_connection()
