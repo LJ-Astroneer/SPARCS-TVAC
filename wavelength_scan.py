@@ -198,6 +198,59 @@ class Mono(object):
             writer = csv.writer(f)
             for row in rows:
                 writer.writerow(row)
+                
+    def full_scan(self,p):
+        input('Turn on Monochromator Lamp, then press [ENTER]')
+        input('Ensure Monochromator filter wheel is set to #1: Empty \n Then Press [Enter]')
+        f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
+        current = float(input('Current Wavelength?\n'))
+        start = 116.0
+        step = 1
+        end = 550.0
+        filt = 1
+        #get to starting location
+        to_start = int((start-current))
+        if to_start != 0:
+            Mono.move(self,to_start)
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Starting Wavelength Reached\n")
+        #loop through the steps
+        wv = start
+        avg = ['Average Current (A)']
+        std = ['Standard Deviation']
+        wl = ['Wavelength (nm)']
+        filters = ['Filter used: 1=none, 2=160nm lp, 3=220nm lp, 4=320nm lp']
+        while wv <= end:
+            if wv == 160:
+                input('Change Monochromator filter to #2, then press [ENTER]')
+                filt = 2
+            if wv == 320:
+                input('Change Monochromator filter to #3, then press [ENTER]')
+                filt = 3
+            if wv == 440:
+                input('Change Monochromator filter to #4, then press [ENTER]')
+                filt = 4
+            print('Reading at {:.2f}'.format(wv))
+            output = p.multi_readings()
+            time.sleep(1) #readout of the photodiode is sometimes janky
+            wl.append(wv)
+            avg.append(output.split(',')[0])
+            std.append(output.split(',')[1])
+            filters.append(filt)
+            Mono.move(self,step)
+            wv+=step
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Step Complete")
+      
+        rows = zip(wl,avg,std,filters)
+        filename = str(time.time())+'.csv'
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\'+filename, 'w',newline='') as f:
+            writer = csv.writer(f)
+            for row in rows:
+                writer.writerow(row)                
+                
     def test(self):
         step = float(input('Move how Far (nm)?\n'))
         Mono.move(self,step)
