@@ -15,7 +15,14 @@ t0 = time.time()
 
 '''
 This block accepts the date input from the user and then turns that into the path to find the data.
-The big loop basically turns each file into an array of text lines, it is searching for 3 entries in the header. First is the pirani pressure reading in the header, the position of that heading is then used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier status becasue if the EM is on then the pressure values will need to be corrected to be comparable to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the filalment to determine when the quadrapole is turned on and therefore the total pressure is needed instead of pirani. The relevant data is put into arrays that are then transformed into their appropriate data types.
+The big loop basically turns each file into an array of text lines, it is searching for 3 entries in 
+the header. First is the pirani pressure reading in the header, the position of that heading is then 
+used to know where to pull the pirani pressure and total pressure from. Next, the electon multiplier 
+status becasue if the EM is on then the pressure values will need to be corrected to be comparable 
+to the non EM values (divide by sensitivity increase ~1000). Finally it collects the status of the 
+filalment to determine when the quadrapole is turned on and therefore the total pressure is needed 
+instead of pirani. The relevant data is put into arrays that are then transformed into their 
+appropriate data types.
 '''   
 head_pirani = []
 head_totalp = []
@@ -85,7 +92,9 @@ pp  = pp.astype(np.float64)
 amu = np.asarray(amu)
 amu = amu.astype(np.float64)
 '''
-This section turns the header time strings and parses them into real date values to do the math that converts the time of a file to the time from the start of the run in both seconds and hours.
+This section turns the header time strings and parses them into real date values 
+to do the math that converts the time of a file to the time from the start of 
+the run in both seconds and hours.
 '''    
 start_head_time = datetime.strptime(head_time[0],'%Y/%m/%d %H:%M:%S.%f')
 head_time_from_start = []
@@ -100,7 +109,8 @@ head_time_from_start = np.array(head_time_from_start)
 head_hours_from_start = np.divide(head_time_from_start,3600)
 ht_arr = np.array(head_time)
 '''
-Colects all the data together including the pirani and total pressure data using the filament status as the switching point. 
+Colects all the data together including the pirani and total pressure data 
+using the filament status as the switching point. 
 '''
 switch = np.where(filament=='3')[0][1] #1 index after switch to get updated pressure
 allpressure = np.append(head_pirani[:switch], head_totalp[switch:])
@@ -108,7 +118,12 @@ alltime = head_time_from_start
 allhour = head_hours_from_start
 alldate = np.array(head_time)
 '''
-Did this becasue 0.0s would show up in the data for unknown reasons or becasue there were gaps in time? Either way these would cause large spikes in the data that did not really mean anything and made the plot look terrible. This removes those indexes. Also these lines remove the 0.000 startup error files from the RGA, when you first start recording the header output numbers are all 0 and useless for the first file.
+Did this becasue 0.0s would show up in the data for unknown reasons or becasue 
+there were gaps in time? Either way these would cause large spikes in the data 
+that did not really mean anything and made the plot look terrible. This removes 
+those indexes. Also these lines remove the 0.000 startup error files from the RGA, 
+when you first start recording the header output numbers are all 0 and useless 
+for the first file.
 '''
 zeros = np.where(allpressure == 0.0)
 pressure = allpressure.copy()
@@ -127,7 +142,8 @@ amu_seq = amu[starts[0][0]:starts[0][1]]
 
 #%% 
 '''
-Plots the pressure in the chamber over time, makes a line for the switchover point, and inserts a note about the lowest pressure reached and the total time run.
+Plots the pressure in the chamber over time, makes a line for the switchover 
+point, and inserts a note about the lowest pressure reached and the total time run.
 '''
 pressure_plot_q = input('Pressure Plot? [y/n]\n')
 if pressure_plot_q == 'y':
@@ -232,7 +248,9 @@ if new_q == 'y':
     plt.show()
 #%%
 '''
-So what this whole thing does is take the individual masses for the sel_amu and it overplots them all over time realtive to the required level they need to reach for a clean chamber.
+So what this whole thing does is take the individual masses for the sel_amu 
+and it overplots them all over time realtive to the required level they need 
+to reach for a clean chamber.
 '''
 reqs_q = input('Want Req. plots? [y/n]\n')
 if reqs_q=='y':
