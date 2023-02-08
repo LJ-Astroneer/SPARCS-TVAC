@@ -201,7 +201,7 @@ class Mono(object):
                 
     def full_scan(self,p):
         input('Turn on Monochromator Lamp, then press [ENTER]')
-        input('Ensure Monochromator filter wheel is set to #1: Empty \n Then Press [Enter]')
+        input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
         f = open(r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\pico_data\pico_data.txt', 'a')
         current = float(input('Current Wavelength?\n'))
         start = 116.0
@@ -209,12 +209,12 @@ class Mono(object):
         end = 550.0
         filt = 1
         #get to starting location
-        to_start = int((start-current))
+        to_start = (start-current)
         if to_start != 0:
             Mono.move(self,to_start)
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
-            print("Starting Wavelength Reached\n")
+            print("Starting Wavelength: "+start+"nm  Reached\n")
         #loop through the steps
         wv = start
         avg = ['Average Current (A)']
@@ -274,9 +274,9 @@ def setup():
 Section 4: runs the wavelength scan
 '''
 p,m = setup()
-m.wave_scan(p)
-m.close_connection()
-p.close_connection()
+# m.wave_scan(p)
+# m.close_connection()
+# p.close_connection()
 #%%
 # current = float(input('Current Wavelength?\n'))
 # start = float(input('Starting Wavelegnth?\n'))
