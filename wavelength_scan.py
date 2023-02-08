@@ -168,7 +168,7 @@ class Mono(object):
             step = step*-1
         
         #get to starting location
-        to_start = int((start-current))
+        to_start = (start-current)
         if to_start != 0:
             Mono.move(self,to_start)
             while Mono.write(self,'^') != '^   0 \r\n':
@@ -186,8 +186,9 @@ class Mono(object):
             wl.append(wv)
             avg.append(output.split(',')[0])
             std.append(output.split(',')[1])
-            Mono.move(self,step)
             wv+=step
+            if wv <= end:
+                Mono.move(self,step)
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
             print("Step Complete")
