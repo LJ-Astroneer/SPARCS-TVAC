@@ -37,7 +37,7 @@ j = 0
 
 date = input('What folder?\n')
 #date = '5.5.22'
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -239,17 +239,20 @@ if new_q == 'y':
     i=0
     scan = []
     plt.figure()
-    plt.scatter(file_amu,file_pp)
+    plt.scatter(file_amu,file_pp,c="k",s=3)
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
+    line = np.arange(0,301,10)
+    req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
+    req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
+    plt.axvline(x=80,c='c')
+    plt.axvline(x=150,c='m')
     if em_state == 1:
         plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
     else:
         plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
-    plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
-    plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
     plt.show()
 #%%
 '''
