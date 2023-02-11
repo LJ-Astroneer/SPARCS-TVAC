@@ -112,7 +112,9 @@ ht_arr = np.array(head_time)
 Colects all the data together including the pirani and total pressure data 
 using the filament status as the switching point. 
 '''
-switch = np.where(filament=='3')[0][1] #1 index after switch to get updated pressure
+switch = 0
+if len(np.where(filament=='3')[0]) != 0:
+    switch = np.where(filament=='3')[0][1] #1 index after switch to get updated pressure
 allpressure = np.append(head_pirani[:switch], head_totalp[switch:])
 alltime = head_time_from_start
 allhour = head_hours_from_start
@@ -151,7 +153,8 @@ if pressure_plot_q == 'y':
     last_time = hour[-1]
     annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
     plt.figure()
-    plt.semilogy(hour,pressure,label='Pressure Data')
+    plt.scatter(hour,pressure,label='Pressure Data')
+    plt.yscale('log')
     plt.ylabel('Total Pressure (Log Torr)')
     plt.xlabel('Time From Pump Start (Hr)')
     plt.title('Chamber Pressure vs. Time')
@@ -178,7 +181,7 @@ if water_q == 'y':
         i+=1
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
+        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for H20 species over time')
@@ -197,7 +200,7 @@ if air_q == 'y':
         i+=1
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
+        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Air species over time')
@@ -216,7 +219,7 @@ if nitro_q == 'y':
         i+=1
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start,pres,label=str(mass)+' amu')
+        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Nitrogen species over time')
@@ -236,7 +239,7 @@ if new_q == 'y':
     i=0
     scan = []
     plt.figure()
-    plt.plot(file_amu,file_pp)
+    plt.scatter(file_amu,file_pp)
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
@@ -245,6 +248,8 @@ if new_q == 'y':
         plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
     else:
         plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
+    plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
+    plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
     plt.show()
 #%%
 '''
@@ -260,7 +265,7 @@ if reqs_q=='y':
     for mass in tqdm(sel_amu,desc='plotting',ncols=75):
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
     plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
@@ -279,7 +284,7 @@ if reqs_q=='y':
     for mass in tqdm(sel_amu,desc='plotting',ncols=75):
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
     plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
@@ -298,7 +303,7 @@ if misc_q=='y':
     for mass in tqdm(sel_amu,desc='plotting',ncols=75):
         index = np.where(amu == mass)
         pres = pp[index[0]]
-        plt.plot(head_hours_from_start[:len(pres)],pres,label=None)
+        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
     plt.yscale('log')
     plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Gas Pressures < 80 amu vs. Time')
