@@ -112,10 +112,11 @@ ht_arr = np.array(head_time)
 Colects all the data together including the pirani and total pressure data 
 using the filament status as the switching point. 
 '''
-switch = 0
-if len(np.where(filament=='3')[0]) != 0:
-    switch = np.where(filament=='3')[0][1] #1 index after switch to get updated pressure
-allpressure = np.append(head_pirani[:switch], head_totalp[switch:])
+if len(np.where(filament!='0')[0]) != 0:
+    switch = np.where(filament!='0')[0][1] #1 index after switch to get updated pressure
+    allpressure = np.append(head_pirani[:switch], head_totalp[switch:])
+else:
+    allpressure = np.append(head_totalp[:])
 alltime = head_time_from_start
 allhour = head_hours_from_start
 alldate = np.array(head_time)
