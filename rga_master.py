@@ -37,7 +37,7 @@ j = 0
 
 date = input('What folder?\n')
 #date = '5.5.22'
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -111,6 +111,9 @@ ht_arr = np.array(head_time)
 '''
 Colects all the data together including the pirani and total pressure data 
 using the filament status as the switching point. 
+
+NEEDS: write a smarter algorithm here that uses the state of the fimlament and the index
+to choose which pressure is used (e.g. np.where(filament===) then use head_pirani)
 '''
 if len(np.where(filament!='0')[0]) != 0:
     switch = np.where(filament!='0')[0][1] #1 index after switch to get updated pressure
