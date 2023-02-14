@@ -251,12 +251,13 @@ if new_q == 'y':
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
+    plt.legend()
     plt.axvline(x=80,c='c')
     plt.axvline(x=150,c='m')
-    if em_state == 1:
-        plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
-    else:
-        plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
+    # if em_state == 1:
+    #     plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
+    # else:
+    #     plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
     plt.show()
 #%%
 '''
