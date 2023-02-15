@@ -29,7 +29,7 @@ head_totalp = []
 data = []
 head_time = []
 filament = []
-num_file = []
+# num_file = []
 amu=[]
 pp=[]
 pp_times=[]
@@ -37,7 +37,7 @@ j = 0
 
 date = input('What folder?\n')
 #date = '5.5.22'
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -55,28 +55,31 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
         totalp_text = list(filter(lambda a: "TotalPressureOut" in a, text))
         head_totalp.append(totalp_text[0][24:-2])
         
-        filament_text = list(filter(lambda a: "FilamentStatus" in a, text))
-        filament.append(filament_text[0][22])
+        filament_text = list(filter(lambda a: "FilamentStatus" in a, text))[0][22]
+        filament.append(filament_text)
         
         d_start = text.index('</ConfigurationData>\n')+1 #becasue this is always a line in the text right before the data, use this as a marker
         head_time.append(text[d_start][0:23]) #just the time from the first data point
         
-        data = text[d_start:]
-        data_split = []
-        for line in data:
-            l = line.split(',')
-            data_split.append(l)  
-        file_pp_times = [item[0] for item in data_split]
-        file_amu = [float(item[1]) for item in data_split]
-        if em_state == 1:
-            file_pp = [float(item[2])/1000 for item in data_split]
-        else:
-            file_pp = [float(item[2]) for item in data_split]
-        nums = [j]*(len(text)-d_start)
-    pp_times.extend(file_pp_times)
-    amu.extend(file_amu)
-    pp.extend(file_pp)
-    num_file.extend(nums)
+        
+        if (filament_text=='6' or filament_text=='3'): #3 and 6 both mean filament is on an running normally
+            data = text[d_start:]
+            data_split = []
+            for line in data:
+                l = line.split(',')
+                data_split.append(l)  
+            file_amu = [float(item[1]) for item in data_split]
+            if em_state == 1:
+                file_pp = [float(item[2])/1000 for item in data_split]
+            else:
+                file_pp = [float(item[2]) for item in data_split]
+            # nums = [j]*(len(text)-d_start)
+        else: #any other filament status code does not contain usable data
+            file_amu = [np.nan for i in range(3100)]
+            file_pp = [np.nan for i in range(3100)]
+    amu.extend([file_amu])
+    pp.extend([file_pp])
+    # num_file.extend(nums)
     j+=1
 
 '''
@@ -84,6 +87,7 @@ Convert everything into the right data type and array
 '''
 head_pirani = np.asarray(head_pirani)
 head_pirani = head_pirani.astype(np.float64)
+head_pirani[np.where(head_pirani==0.0001)]=np.nan #removes any line with 1E-4 becasue that means the pirani gauge is bottomed out
 head_totalp = np.asarray(head_totalp)
 head_totalp = head_totalp.astype(np.float64)
 filament = np.asarray(filament)
@@ -91,6 +95,7 @@ pp = np.asarray(pp)
 pp  = pp.astype(np.float64)
 amu = np.asarray(amu)
 amu = amu.astype(np.float64)
+
 '''
 This section turns the header time strings and parses them into real date values 
 to do the math that converts the time of a file to the time from the start of 
@@ -112,39 +117,32 @@ ht_arr = np.array(head_time)
 Colects all the data together including the pirani and total pressure data 
 using the filament status as the switching point. 
 
-NEEDS: write a smarter algorithm here that uses the state of the fimlament and the index
-to choose which pressure is used (e.g. np.where(filament===) then use head_pirani)
+'''    
+pirani=np.where((filament!='6')&(filament!='3')) #pirani pressure only useful when filament is off (removed 1E-4's already)
+total=np.where((filament=='6')|(filament=='3')) #total p only useful when filament is on
+allpressure = np.zeros(j)
+allpressure[pirani] = head_pirani[pirani]
+allpressure[total] = head_totalp[total]
+
+times = head_time_from_start
+hour = head_hours_from_start
+date = np.array(head_time)
+
 '''
-if len(np.where(filament!='0')[0]) != 0:
-    switch = np.where(filament!='0')[0][1] #1 index after switch to get updated pressure
-    allpressure = np.append(head_pirani[:switch], head_totalp[switch:])
-else:
-    allpressure = np.append(head_totalp[:])
-alltime = head_time_from_start
-allhour = head_hours_from_start
-alldate = np.array(head_time)
-'''
-Did this becasue 0.0s would show up in the data for unknown reasons or becasue 
-there were gaps in time? Either way these would cause large spikes in the data 
-that did not really mean anything and made the plot look terrible. This removes 
-those indexes. Also these lines remove the 0.000 startup error files from the RGA, 
-when you first start recording the header output numbers are all 0 and useless 
-for the first file.
+These lines remove the 0.000 startup error files from the RGA where the outputs
+from the header like pressure are not filled in yet.
+
+0's are also removed from the partial pressure list becasue these values mean
+that the EM is not on and the RGA is effectively measuring noting at that amu.
+HOWEVER, haveing a 0 in the dataset can be misleading then since we want low
+numbers. So it is better to remove the data so it does not show on plots.
 '''
 zeros = np.where(allpressure == 0.0)
 pressure = allpressure.copy()
-pressure[zeros[0]] = np.nan
-times = alltime.copy()
-times[zeros[0]] = np.nan
-date = alldate.copy()
-date[zeros[0]] = np.nan
-hour = allhour.copy()
-hour[zeros[0]] = np.nan
-#gets rid of zeros that are noise and not real data, just lack of data
-zeros = np.where(pp == 0.0)
-pp[zeros[0]] = np.nan
-starts = np.where(amu == min(amu))
-amu_seq = amu[starts[0][0]:starts[0][1]]
+pressure[zeros] = np.nan
+
+pp[np.where(pp==0)]=np.nan
+amu_seq = amu[total[0]]
 
 #%% 
 '''
@@ -162,9 +160,6 @@ if pressure_plot_q == 'y':
     plt.ylabel('Total Pressure (Log Torr)')
     plt.xlabel('Time From Pump Start (Hr)')
     plt.title('Chamber Pressure vs. Time')
-    plt.axvline(x=hour[switch],color='red',linestyle='dotted',label='Pirani to Total pressure switch')
-    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.plot([], [], ' ', label=annotation)
     plt.legend(loc='upper right')
     plt.show()
@@ -177,73 +172,75 @@ Can use this to select a range later
 This literally plots the whole sequence of pressure data but for each amu vs time
 '''
 water_q = input('Water plot? [y/n]\n')
+#water ions cover a wider range than 16,17,18 but those are common markers for it
 if water_q == 'y':
-    seq = np.arange(16,19) #water is 16,17,18; air is 28,32,40
-    i=0
     plt.figure()
-    for mass in tqdm(seq,desc='plotting',ncols=75):
-        i+=1
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
+    mass1 = np.where(amu==16)
+    mass2 = np.where(amu==17)
+    mass3 = np.where(amu==18)    
+    pres1 = pp[mass1]    
+    pres2 = pp[mass2] 
+    pres3 = pp[mass3]
+    plt.scatter(hour[mass1[0]],pres1,label='16 amu')
+    plt.scatter(hour[mass2[0]],pres2,label='17 amu')
+    plt.scatter(hour[mass3[0]],pres3,label='18 amu')
     plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
+    #plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for H20 species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
+
 air_q = input('Air plot? [y/n]\n')
+#air typically shows up at 14,28 for N and N2; 16,32 for O and O2; also 40 for Argon
+#skipped 16 since it more stronly tracks water
 if air_q == 'y':
-    seq = np.array([28,32,40]) #water is 16,17,18; air is 28,32,40
-    i=0
     plt.figure()
-    for mass in tqdm(seq,desc='plotting',ncols=75):
-        i+=1
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
+    mass1 = np.where(amu==14)
+    mass2 = np.where(amu==28)
+    mass3 = np.where(amu==32)    
+    mass4 = np.where(amu==40)
+    pres1 = pp[mass1]    
+    pres2 = pp[mass2] 
+    pres3 = pp[mass3]
+    pres4 = pp[mass4]
+    plt.scatter(hour[mass1[0]],pres1,label='14 amu, N')
+    plt.scatter(hour[mass2[0]],pres2,label='28 amu, N2')
+    plt.scatter(hour[mass3[0]],pres3,label='32 amu, O2')
+    plt.scatter(hour[mass4[0]],pres4,label='40 amu, Ar')
     plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
+    #plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Air species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
+
 nitro_q = input('Nitro plot? [y/n]\n')
+#just nitrogen ions, 14 for N and N2++; 28 for N2
 if nitro_q == 'y':
-    seq = np.array([14,28]) #water is 16,17,18; air is 28,32,40
-    i=0
+    mass1 = np.where(amu==14)
+    mass2 = np.where(amu==28)
+    pres1 = pp[mass1]    
+    pres2 = pp[mass2]   
     plt.figure()
-    for mass in tqdm(seq,desc='plotting',ncols=75):
-        i+=1
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start,pres,label=str(mass)+' amu')
+    plt.scatter(hour[mass1[0]],pres1,label='14 amu, N')
+    plt.scatter(hour[mass2[0]],pres2,label='28 amu, N2')
     plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
     plt.title('Partial Pressures for Nitrogen species over time')
     plt.xlabel('Time from Start (Hr)')
     plt.ylabel('Partial Pressure (log Torr)')
-    #plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    #plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 #%%
 '''
-Plotting the newest full RGA Scan
+Plotting the newest full RGA Scan with requirement lines
 '''
 new_q = input('Newest Mass plot? [y/n]\n')
 if new_q == 'y':
-    seq = amu_seq #water is 16,17,18; air is 28,32,40
-    i=0
-    scan = []
     plt.figure()
-    plt.scatter(file_amu,file_pp,c="k",s=3)
+    plt.scatter(amu[-1],pp[-1],s=3,c='k')    
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
@@ -251,76 +248,33 @@ if new_q == 'y':
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
+    annotation = "Total Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(pressure[-1],hour[-1])
+    plt.plot([], [], ' ', label=annotation)
     plt.legend()
     plt.axvline(x=80,c='c')
     plt.axvline(x=150,c='m')
-    # if em_state == 1:
-    #     plt.ylim(5e-14,max(file_pp)*1.25) #sensitivity floor is 5E-14 with EM on
-    # else:
-    #     plt.ylim(5e-12,max(file_pp)*1.25) #sensitivity floor is 5E-12 with EM off
     plt.show()
+
 #%%
-'''
-So what this whole thing does is take the individual masses for the sel_amu 
-and it overplots them all over time realtive to the required level they need 
-to reach for a clean chamber.
-'''
-reqs_q = input('Want Req. plots? [y/n]\n')
-if reqs_q=='y':
-    #plots the selected amu over time relative to the req
-    sel_amu = np.arange(80,151) #[83,84,97,98,111,112,127,136,140,142,148]
+comp_q = input('Compare Scans? [y/n]\n')
+if comp_q=='y':
+    print('Below is the list of valid filenumbers')
+    print(np.where(np.isnan(pressure) == False)[0])
+    first=int(input('Input first filenumber\n'))
+    second=int(input('Input second filenumber\n'))
+    tbtw = int(hour[second]-hour[first])
     plt.figure()
-    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
-    plt.axhline(y=3e-11,color='red',linestyle='dotted',label='Requirement 3E-11')
+    plt.scatter(amu[first],pp[first],s=3,label='Filenumber = {num}'.format(num=first))
+    plt.scatter(amu[second],pp[second],s=3,label='Filenumber = {num}'.format(num=second))
+    annotation = "Time Between Scans {t} Hours".format(t=tbtw)
+    plt.plot([], [], ' ', label=annotation)
     plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
-    plt.title('Partial Gas Pressures > 80 amu vs. Time')
+    plt.title('Most recent RGA scan')
+    plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
-    plt.legend()
-    plt.show()
-     
-    
-    #same but with the higher amus
-    sel_amu = np.arange(151,301)#[150,169,215,228,233,267,281,297,300]
-    plt.figure()
-    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
-    plt.axhline(y=3e-12,color='red',linestyle='dotted',label='Requirement 3E-12')
-    plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
-    plt.title('Partial Gas Pressures > 150 amu vs. Time')
-    plt.ylabel('Partial Pressure (log Torr)')
-    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
     plt.legend()
     plt.show()
 
-misc_q = input('Want Misc. plots? [y/n]\n')
-if misc_q=='y':
-    sel_amu = np.arange(1,80)
-    plt.figure()
-    for mass in tqdm(sel_amu,desc='plotting',ncols=75):
-        index = np.where(amu == mass)
-        pres = pp[index[0]]
-        plt.scatter(head_hours_from_start[:len(pres)],pres,label=None)
-    plt.yscale('log')
-    plt.ylim(bottom=5e-14) #5e-14 is the minimum detectable partial pressure with EM on
-    plt.title('Partial Gas Pressures < 80 amu vs. Time')
-    plt.ylabel('Partial Pressure (log Torr)')
-    plt.xlabel('Time From Vacuum Pumping Start (Hr)')
-    # plt.axvline(x=25.66,color='blue',linestyle='dotted',label='LN2 System Turned on')
-    # plt.axvline(x=168.63,color='blue',linestyle='dotted',label='LN2 System Test 2')
-    plt.legend()
-    plt.show()
 #%% Just timing things
 t1 = time.time()
 total = t1-t0
