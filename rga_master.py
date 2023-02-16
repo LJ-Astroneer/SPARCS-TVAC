@@ -11,6 +11,7 @@ import os
 from datetime import datetime
 from tqdm import tqdm
 import time
+from temp_read import read_temps
 t0 = time.time()
 
 '''
@@ -35,7 +36,10 @@ pp=[]
 pp_times=[]
 j = 0
 
-date = input('What folder?\n')
+date = input('What RGA folder?\n')
+temp_file = input('Enter directory for temp file, ensure to delete the ""\n')
+ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
+
 #date = '5.5.22'
 path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
@@ -114,6 +118,21 @@ head_time_from_start = np.array(head_time_from_start)
 head_hours_from_start = np.divide(head_time_from_start,3600)
 ht_arr = np.array(head_time)
 '''
+Same thing but with the temperature times
+'''
+
+ttime_list=[]
+ttime_from_start = []
+for entry in ttimes:
+    ttime_entry = datetime.strptime(entry,'%Y-%m-%d %H:%M:%S')
+    ttime_list.append(ttime_entry)
+    ttime_diff = ttime_entry - start_head_time
+    tsec_diff = ttime_diff.total_seconds()
+    ttime_from_start.append(tsec_diff)
+ttime = np.array(ttime_from_start)
+thours = np.divide(ttime_from_start,3600)
+
+'''
 Colects all the data together including the pirani and total pressure data 
 using the filament status as the switching point. 
 
@@ -153,15 +172,18 @@ pressure_plot_q = input('Pressure Plot? [y/n]\n')
 if pressure_plot_q == 'y':
     lowest_pressure = np.nanmin(pressure)
     last_time = hour[-1]
-    annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
-    plt.figure()
-    plt.scatter(hour,pressure,label='Pressure Data')
-    plt.yscale('log')
-    plt.ylabel('Total Pressure (Log Torr)')
-    plt.xlabel('Time From Pump Start (Hr)')
+    fig,ax1 = plt.subplots()
+    ax2=ax1.twinx()
+    l1 = ax1.scatter(hour,pressure,label='Pressure Data')
+    l2 = ax2.scatter(thours,tzone1,label='Temperature Zone 1',c='r')
+    ax1.set_yscale('log')
+    ax1.set_ylabel('Total Pressure (Log Torr)')
+    ax2.set_ylabel('Temperature (°C)',color='r')
+    ax1.set_xlabel('Time From Pump Start (Hr)')
     plt.title('Chamber Pressure vs. Time')
-    plt.plot([], [], ' ', label=annotation)
-    plt.legend(loc='upper right')
+    annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
+    plt.annotate(annotation,xy=(43,80),xytext=(50,80))
+    plt.legend([l1,l2],['Pressure Data','Temp Zone 1'])
     plt.show()
 
 #%%
