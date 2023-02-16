@@ -37,11 +37,9 @@ pp_times=[]
 j = 0
 
 date = input('What RGA folder?\n')
-temp_file = input('Enter directory for temp file, ensure to delete the ""\n')
-ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
 
 #date = '5.5.22'
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -117,20 +115,7 @@ for entry in tqdm(head_time,desc='Finding Times',ncols=75):
 head_time_from_start = np.array(head_time_from_start)
 head_hours_from_start = np.divide(head_time_from_start,3600)
 ht_arr = np.array(head_time)
-'''
-Same thing but with the temperature times
-'''
 
-ttime_list=[]
-ttime_from_start = []
-for entry in ttimes:
-    ttime_entry = datetime.strptime(entry,'%Y-%m-%d %H:%M:%S')
-    ttime_list.append(ttime_entry)
-    ttime_diff = ttime_entry - start_head_time
-    tsec_diff = ttime_diff.total_seconds()
-    ttime_from_start.append(tsec_diff)
-ttime = np.array(ttime_from_start)
-thours = np.divide(ttime_from_start,3600)
 
 '''
 Colects all the data together including the pirani and total pressure data 
@@ -164,6 +149,7 @@ pp[np.where(pp==0)]=np.nan
 amu_seq = amu[total[0]]
 
 #%% 
+
 '''
 Plots the pressure in the chamber over time, makes a line for the switchover 
 point, and inserts a note about the lowest pressure reached and the total time run.
@@ -172,18 +158,15 @@ pressure_plot_q = input('Pressure Plot? [y/n]\n')
 if pressure_plot_q == 'y':
     lowest_pressure = np.nanmin(pressure)
     last_time = hour[-1]
-    fig,ax1 = plt.subplots()
-    ax2=ax1.twinx()
-    l1 = ax1.scatter(hour,pressure,label='Pressure Data')
-    l2 = ax2.scatter(thours,tzone1,label='Temperature Zone 1',c='r')
-    ax1.set_yscale('log')
-    ax1.set_ylabel('Total Pressure (Log Torr)')
-    ax2.set_ylabel('Temperature (°C)',color='r')
-    ax1.set_xlabel('Time From Pump Start (Hr)')
-    plt.title('Chamber Pressure vs. Time')
     annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
-    plt.annotate(annotation,xy=(43,80),xytext=(50,80))
-    plt.legend([l1,l2],['Pressure Data','Temp Zone 1'])
+    plt.figure()
+    plt.scatter(hour,pressure,label='Pressure Data')
+    plt.yscale('log')
+    plt.ylabel('Total Pressure (Log Torr)')
+    plt.xlabel('Time From Pump Start (Hr)')
+    plt.title('Chamber Pressure vs. Time')
+    plt.plot([], [], ' ', label=annotation)
+    plt.legend(loc='upper right')
     plt.show()
 
 #%%
@@ -280,10 +263,12 @@ if new_q == 'y':
 #%%
 comp_q = input('Compare Scans? [y/n]\n')
 if comp_q=='y':
-    print('Below is the list of valid filenumbers')
-    print(np.where(np.isnan(pressure) == False)[0])
-    first=int(input('Input first filenumber\n'))
-    second=int(input('Input second filenumber\n'))
+    print('Below is the list of valid file timestamps')
+    print(ht_arr[np.where(np.isnan(pressure) == False)])
+    first_t=input('Input first timestamp (copy paste from above)\n')
+    second_t=input('Input second timestamp (copy paste from above)\n')
+    first = np.where(ht_arr==first_t)[0][0]
+    second = np.where(ht_arr==second_t)[0][0]
     tbtw = int(hour[second]-hour[first])
     plt.figure()
     plt.scatter(amu[first],pp[first],s=3,label='Filenumber = {num}'.format(num=first))
@@ -297,6 +282,49 @@ if comp_q=='y':
     plt.legend()
     plt.show()
 
+#%% Temps
+'''
+Import temp data
+'''
+temp_q = input('Want to work with temperature data? [y/n]\n')
+if temp_q == 'y':
+    temp_file = input('Enter directory for temp file, ensure to delete the ""\n')
+    ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
+    
+    '''
+    Parsing the temperature times
+    '''
+    ttime_list=[]
+    ttime_from_start = []
+    for entry in ttimes:
+        ttime_entry = datetime.strptime(entry,'%Y-%m-%d %H:%M:%S')
+        ttime_list.append(ttime_entry)
+        ttime_diff = ttime_entry - start_head_time
+        tsec_diff = ttime_diff.total_seconds()
+        ttime_from_start.append(tsec_diff)
+    ttime = np.array(ttime_from_start)
+    thours = np.divide(ttime_from_start,3600)
+    
+    '''
+    Pressure plot with temp data
+    '''
+    pressure_plot_q = input('Pressure Plot? [y/n]\n')
+    if pressure_plot_q == 'y':
+        lowest_pressure = np.nanmin(pressure)
+        last_time = hour[-1]
+        fig,ax1 = plt.subplots()
+        ax2=ax1.twinx()
+        l2 = ax2.scatter(thours,tzone1,label='Temperature Zone 1',c='r',s=1)
+        l1 = ax1.scatter(hour,pressure,label='Pressure Data',c='b')
+        ax1.set_yscale('log')
+        ax1.set_ylabel('Total Pressure (Log Torr)',color='b')
+        ax2.set_ylabel('Temperature (°C)',color='r')
+        ax1.set_xlabel('Time From Pump Start (Hr)')
+        plt.title('Chamber Pressure vs. Time')
+        annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
+        plt.annotate(annotation,xy=(43,80),xytext=(50,80))
+        plt.legend([l2,l1],['Temp Zone 1','Pressure Data'])
+        plt.show()
 #%% Just timing things
 t1 = time.time()
 total = t1-t0
