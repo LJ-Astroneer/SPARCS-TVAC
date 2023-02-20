@@ -6,11 +6,13 @@ Created on Sat Mar 19 17:56:26 2022
 """
 import numpy as np
 import matplotlib.pyplot as plt 
+from matplotlib.markers import MarkerStyle
 import csv
 import os
 from datetime import datetime
 from tqdm import tqdm
 import time
+import sys
 from temp_read import read_temps
 t0 = time.time()
 
@@ -264,15 +266,23 @@ if new_q == 'y':
 comp_q = input('Compare Scans? [y/n]\n')
 if comp_q=='y':
     print('Below is the list of valid file timestamps')
+    np.set_printoptions(threshold=sys.maxsize)
     print(ht_arr[np.where(np.isnan(pressure) == False)])
+    np.set_printoptions(threshold = False)
     first_t=input('Input first timestamp (copy paste from above)\n')
     second_t=input('Input second timestamp (copy paste from above)\n')
     first = np.where(ht_arr==first_t)[0][0]
     second = np.where(ht_arr==second_t)[0][0]
     tbtw = int(hour[second]-hour[first])
     plt.figure()
-    plt.scatter(amu[first],pp[first],s=3,label='Filenumber = {num}'.format(num=first))
-    plt.scatter(amu[second],pp[second],s=3,label='Filenumber = {num}'.format(num=second))
+    m=MarkerStyle('o','none')
+    plt.scatter(amu[first],pp[first],label='{num}'.format(num=first_t),c='r',marker=m)
+    plt.scatter(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
+    line = np.arange(0,301,10)
+    req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
+    req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
+    plt.axvline(x=80,c='c')
+    plt.axvline(x=150,c='m')
     annotation = "Time Between Scans {t} Hours".format(t=tbtw)
     plt.plot([], [], ' ', label=annotation)
     plt.yscale('log')
