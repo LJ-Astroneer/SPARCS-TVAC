@@ -36,6 +36,7 @@ filament = []
 amu=[]
 pp=[]
 pp_times=[]
+em = []
 j = 0
 
 date = input('What RGA folder?\n')
@@ -82,7 +83,7 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
         
     amu.extend([file_amu])
     pp.extend([file_pp])
-    # num_file.extend(nums)
+    em.append([em_state])
     j+=1
 
 '''
@@ -145,13 +146,18 @@ numbers. So it is better to remove the data so it does not show on plots.
 zeros = np.where(allpressure == 0.0)
 pressure = allpressure.copy()
 pressure[zeros] = np.nan
+pp[np.where(pp==0)]=np.nan #removes the 0's from non EM low partial pressures
+amu_fil_on = amu[np.where((filament=='6')|(filament=='3'))] #only the amus where the filament is on
+pp_fil_on = pp[np.where((filament=='6')|(filament=='3'))] #only the amus where the filament is on
+amu_seq = amu_fil_on[0] #full amu sequenc
+amu_seq_int = amu_seq[amu_seq == amu_seq.astype(int)] #only the whole number amus
 
-pp[np.where(pp==0)]=np.nan
-amu_fil_on = amu[total[0]]
-amu_seq = amu_fil_on[0]
-amu_seq_int = amu_seq[amu_seq == amu_seq.astype(int)]
-pp_int = pp[np.where(amu==amu.astype(int))]
+amu_int = amu[:,[amu_seq == amu_seq.astype(int)][0]] #pulls all the integer amus from amu array
+pp_int = pp[:,[amu_seq == amu_seq.astype(int)][0]] #pulls all pp from integer amus in pp array
 
+amu_int_fil_on = amu_fil_on[:,[amu_seq == amu_seq.astype(int)][0]] #pulls all the integer amus from amu array
+pp_int_fil_on = pp_fil_on[:,[amu_seq == amu_seq.astype(int)][0]] #pulls all pp from integer amus in pp array
+pressure_fil_on = pressure[np.where((filament=='6')|(filament=='3'))]
 
 #%% 
 
@@ -295,6 +301,18 @@ if comp_q=='y':
     plt.legend()
     plt.show()
 
+#%% Check RGA is working well
+'''
+This is inspired by the RGA failure we had, this will not be an input call but 
+a function that you can run at any time and look at them youself
+'''
+def health_check():
+    x = np.nansum(pp_int_fil_on,axis=1)
+    y = pressure_fil_on.copy()
+    mag_diff = np.log10(x)-np.log10(y)
+    plt.plot(mag_diff)
+    plt.title('Magnitude difference between sum of partial pressures and total pressure')
+    plt.ylabel('Magnitude difference log10(sum)-log10(total)')
 #%% Temps
 '''
 Import temp data
