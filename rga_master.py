@@ -41,7 +41,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'D:/OneDrive - Arizona State University/LASI-Alpha/Documents/RGA_Data/{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -64,23 +64,22 @@ for entry in tqdm(folder, desc='Reading Files',ncols=100):
         
         d_start = text.index('</ConfigurationData>\n')+1 #becasue this is always a line in the text right before the data, use this as a marker
         head_time.append(text[d_start][0:23]) #just the time from the first data point
-        
-        
+
+        data = text[d_start:]
+        data_split = []
+        for line in data:
+            l = line.split(',')
+            data_split.append(l)  
+        file_amu = [float(item[1]) for item in data_split]
         if (filament_text=='6' or filament_text=='3'): #3 and 6 both mean filament is on an running normally
-            data = text[d_start:]
-            data_split = []
-            for line in data:
-                l = line.split(',')
-                data_split.append(l)  
-            file_amu = [float(item[1]) for item in data_split]
             if em_state == 1:
                 file_pp = [float(item[2])/1000 for item in data_split]
             else:
                 file_pp = [float(item[2]) for item in data_split]
-            # nums = [j]*(len(text)-d_start)
-        else: #any other filament status code does not contain usable data
-            file_amu = [np.nan for i in range(3100)]
-            file_pp = [np.nan for i in range(3100)]
+        else:
+            file_pp = [np.nan for item in data_split]
+            file_amu = [np.nan for item in data_split]
+        
     amu.extend([file_amu])
     pp.extend([file_pp])
     # num_file.extend(nums)
@@ -148,7 +147,11 @@ pressure = allpressure.copy()
 pressure[zeros] = np.nan
 
 pp[np.where(pp==0)]=np.nan
-amu_seq = amu[total[0]]
+amu_fil_on = amu[total[0]]
+amu_seq = amu_fil_on[0]
+amu_seq_int = amu_seq[amu_seq == amu_seq.astype(int)]
+pp_int = pp[np.where(amu==amu.astype(int))]
+
 
 #%% 
 
@@ -335,7 +338,3 @@ if temp_q == 'y':
         plt.annotate(annotation,xy=(43,80),xytext=(50,80))
         plt.legend([l2,l1],['Temp Zone 1','Pressure Data'])
         plt.show()
-#%% Just timing things
-t1 = time.time()
-total = t1-t0
-print('\n Time to run: {:.2f} sec'.format(total))
