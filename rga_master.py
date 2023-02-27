@@ -256,7 +256,7 @@ Plotting the newest full RGA Scan with requirement lines
 new_q = input('Newest Mass plot? [y/n]\n')
 if new_q == 'y':
     plt.figure()
-    plt.scatter(amu[-1],pp[-1],s=3,c='k')    
+    plt.scatter(amu_int[-1],pp_int[-1],s=3,c='k')    
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
