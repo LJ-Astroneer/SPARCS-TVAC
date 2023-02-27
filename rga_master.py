@@ -42,7 +42,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'D:/OneDrive - Arizona State University/LASI-Alpha/Documents/RGA_Data/{}'.format(date)
+path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -285,8 +285,8 @@ if comp_q=='y':
     tbtw = int(hour[second]-hour[first])
     plt.figure()
     m=MarkerStyle('o','none')
-    plt.scatter(amu[first],pp[first],label='{num}'.format(num=first_t),c='r',marker=m)
-    plt.scatter(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
+    plt.scatter(amu_int[first],pp_int[first],label='{num}'.format(num=first_t),c='r',marker=m)
+    plt.scatter(amu_int[second],pp_int[second],label='{num}'.format(num=second_t),c='k')
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
@@ -310,6 +310,7 @@ def health_check():
     x = np.nansum(pp_int_fil_on,axis=1)
     y = pressure_fil_on.copy()
     mag_diff = np.log10(x)-np.log10(y)
+    plt.figure()
     plt.plot(mag_diff)
     plt.title('Magnitude difference between sum of partial pressures and total pressure')
     plt.ylabel('Magnitude difference log10(sum)-log10(total)')
