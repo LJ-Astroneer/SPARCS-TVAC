@@ -42,7 +42,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -249,6 +249,24 @@ if nitro_q == 'y':
     plt.ylabel('Partial Pressure (log Torr)')
     plt.legend()
     plt.show()
+
+def custom_plot():
+    masses = input ('What AMU? Comma seperated, no spaces\n')
+    masses = masses.split(',')
+    masses = np.asarray(masses)
+    masses = masses.astype(np.float64)
+    plt.figure()
+    for mass in masses:
+        i = np.where(amu==mass)
+        y = pp[i]
+        x = hour[i[0]]
+        plt.scatter(x,y,label=(str(mass)+' amu'))
+    plt.yscale('log')
+    plt.title('Partial Pressures for Nitrogen species over time')
+    plt.xlabel('Time from Start (Hr)')
+    plt.ylabel('Partial Pressure (log Torr)')
+    plt.legend()
+    plt.show()
 #%%
 '''
 Plotting the newest full RGA Scan with requirement lines
@@ -256,7 +274,8 @@ Plotting the newest full RGA Scan with requirement lines
 new_q = input('Newest Mass plot? [y/n]\n')
 if new_q == 'y':
     plt.figure()
-    plt.scatter(amu_int[-1],pp_int[-1],s=3,c='k')    
+    #plt.scatter(amu[-1],pp[-1],s=3,c='k')
+    plt.plot(amu[-1],pp[-1],c='k')    
     plt.yscale('log')
     plt.title('Most recent RGA scan')
     plt.xlabel('AMU')
@@ -285,8 +304,8 @@ if comp_q=='y':
     tbtw = int(hour[second]-hour[first])
     plt.figure()
     m=MarkerStyle('o','none')
-    plt.scatter(amu_int[first],pp_int[first],label='{num}'.format(num=first_t),c='r',marker=m)
-    plt.scatter(amu_int[second],pp_int[second],label='{num}'.format(num=second_t),c='k')
+    plt.scatter(amu[first],pp[first],label='{num}'.format(num=first_t),c='r',marker=m)
+    plt.scatter(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
