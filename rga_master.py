@@ -42,7 +42,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'C:/Users/sesel/OneDrive - Arizona State University/LASI-Alpha/Documents/RGA_Data/{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -250,7 +250,7 @@ if nitro_q == 'y':
     plt.legend()
     plt.show()
 
-def custom_plot():
+def custom_trackplot():
     masses = input ('What AMU? Comma seperated, no spaces\n')
     masses = masses.split(',')
     masses = np.asarray(masses)
@@ -290,6 +290,32 @@ if new_q == 'y':
     plt.axvline(x=150,c='m')
     plt.show()
 
+def custom_fullplot():
+    print('Below is the list of valid file timestamps')
+    np.set_printoptions(threshold=sys.maxsize)
+    print(ht_arr[np.where(np.isnan(pressure) == False)])
+    np.set_printoptions(threshold = False)
+    first_t=input('Input first timestamp (copy paste from above)\n')
+    # second_t=input('Input second timestamp (copy paste from above)\n')
+    first = np.where(ht_arr==first_t)[0][0]
+    # second = np.where(ht_arr==second_t)[0][0]
+    # tbtw = int(hour[second]-hour[first])
+    plt.figure()
+    plt.plot(amu[first],pp[first],label='{num}'.format(num=first_t),c='k')
+    line = np.arange(0,301,10)
+    plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='Requirement >80 amu <3E-11 Torr',c='c')
+    plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='Requirement >150 amu <3E-12 Torr',c='m')
+    plt.axvline(x=80,c='c')
+    plt.axvline(x=150,c='m')
+    annotation = "Total Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(pressure[first],hour[first])
+    plt.plot([], [], ' ', label=annotation)
+    plt.yscale('log')
+    plt.title('30C RGA scan')
+    plt.xlabel('AMU')
+    plt.ylabel('Partial Pressure (log Torr)')
+    plt.legend()
+    plt.show()
+    
 #%%
 comp_q = input('Compare Scans? [y/n]\n')
 if comp_q=='y':
