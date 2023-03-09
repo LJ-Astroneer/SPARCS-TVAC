@@ -333,6 +333,7 @@ def health_check():
     plt.plot(mag_diff)
     plt.title('Magnitude difference between sum of partial pressures and total pressure')
     plt.ylabel('Magnitude difference log10(sum)-log10(total)')
+    print(mag_diff)
 #%% Temps
 '''
 Import temp data
