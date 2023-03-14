@@ -42,7 +42,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'C:/Users/sesel/OneDrive - Arizona State University/LASI-Alpha/Documents/RGA_Data/{}'.format(date)
+path = r'D:/OneDrive - Arizona State University/LASI-Alpha/Documents/RGA_Data/{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
