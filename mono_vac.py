@@ -64,13 +64,14 @@ class Pump(object):
         t_end = time.time()+(float(hours)*60*60)
         # self.ser = vacconnect()
         f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\mono_vac_data\\'+filename+'.csv', 'a')
+        f.write('Time.time(),Pressure(Torr)')
         while time.time() < t_end:
             time.sleep(5)
             result = float(Pump.read_pres(self)[1:])
             tt = time.time()
             f.write('\n'+str(tt)+','+str(result))
             f.flush()
-    
+        f.close()
     '''
     #auto on code
     #00B0UTURBOUDRY6.0E+01

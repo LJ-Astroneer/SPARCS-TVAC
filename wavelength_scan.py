@@ -76,7 +76,7 @@ class Pico(object):
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())
         self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
-        time.sleep(10)         
+        time.sleep(6)         
         out = ''
       # loop which reads out mean and stddev when calculations are finished
         while self.ser.inWaiting() > 0:
@@ -225,7 +225,6 @@ class Mono(object):
         start = float(input('Starting Wavelegnth?\n'))
         step = float(input('Step?\n'))
         end = float(input('Final Wavelength?\n'))
-        filt = 1
         #get to starting location
         to_start = (start-current)
         if to_start != 0:
@@ -238,31 +237,20 @@ class Mono(object):
         avg = ['Average Current (A)']
         std = ['Standard Deviation']
         wl = ['Wavelength (nm)']
-        filters = ['Filter used: 1=none, 2=160nm lp, 3=220nm lp, 4=320nm lp']
         while wv <= end:
-            if wv == 160:
-                input('Change Monochromator filter to #2, then press [ENTER]')
-                filt = 2
-            if wv == 320:
-                input('Change Monochromator filter to #3, then press [ENTER]')
-                filt = 3
-            if wv == 440:
-                input('Change Monochromator filter to #4, then press [ENTER]')
-                filt = 4
             print('Reading at {:.2f}'.format(wv))
             output = p.multi_readings()
             time.sleep(1) #readout of the photodiode is sometimes janky
             wl.append(wv)
             avg.append(output.split(',')[0])
             std.append(output.split(',')[1])
-            filters.append(filt)
             Mono.move(self,step)
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
             print("Step Complete")
       
-        rows = zip(wl,avg,std,filters)
+        rows = zip(wl,avg,std)
         with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
@@ -270,7 +258,7 @@ class Mono(object):
         
         f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'a')        
         avg[1:]=[x-dark_median for x in list(map(float,avg[1:]))]
-        rows = zip(wl,avg,std,filters)
+        rows = zip(wl,avg,std)
         with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Dark_subtracted\\'+filename+'_dsub.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
@@ -346,6 +334,63 @@ class Mono(object):
             for row in rows:
                 writer.writerow(row)  
         print('Scan Complete')
+
+    def fix_scan(self,p):
+        filename = str(time.time())
+        dark_median,dark_std = Mono.dark_scan(self,p,filename)
+        print('\nBegin full SPARCS spectrum sampling\n')
+        input('Turn on Monochromator Lamp, then press [ENTER]')
+        time.sleep(10)
+        input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_raw.csv', 'a')
+        current = float(input('Current Wavelength?\n'))
+        start = 116.0
+        step = 1
+        end = 500.0
+        filt = 1
+        #get to starting location
+        to_start = (start-current)
+        if to_start != 0:
+            Mono.move(self,to_start)
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+            print("Starting Wavelength: "+str(start)+"nm  Reached\n")
+        #loop through the steps
+        wv = start
+        avg = 'Average Current (A)'
+        std = 'Standard Deviation'
+        sub = 'Dark Substracted Average'
+        wl = 'Wavelength (nm)'
+        filters = 'Filter used: 1=none 2=160nm lp 3=220nm lp 4=320nm lp'
+        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\'+filename+'.csv', 'a')
+        f.write('\n'+wl+','+avg+','+std+','+sub+','+filters)
+        while wv <= end:
+            if wv == 160: #160 chosen because the 160 lp is >80% at this point
+                # input('Change Monochromator filter to #2, then press [ENTER]')
+                filt = 2
+            if wv == 300: #300 chosen because the 160 lp starts passing light at 150 nm
+                # input('Change Monochromator filter to #3, then press [ENTER]')
+                filt = 3
+            if wv == 400: #400 chosen because the 220 lp starts passing light at 200 nm
+                # input('Change Monochromator filter to #4, then press [ENTER]')
+                filt = 4
+            print('Reading at {:.2f}'.format(wv))
+            output = p.multi_readings()
+            time.sleep(1) #readout of the photodiode is sometimes janky
+            wl = wv
+            avg = output.split(',')[0]
+            std = output.split(',')[1]
+            sub = float(avg) - dark_median
+            filters = filt
+            f.write('\n'+str(wl)+','+str(avg)+','+str(std)+','+str(sub)+','+str(filters))
+            f.flush()
+            Mono.move(self,step)
+            wv+=step
+            while Mono.write(self,'^') != '^   0 \r\n':
+                time.sleep(1)
+        f.close()
+        print('Scan Complete')
+    
     '''
     Small test script to move the monochroamtor specific wavelength distances
     '''            
@@ -372,6 +417,12 @@ def setup():
 Section 4: The Execution block
 '''
 p,m = setup()
-m.full_scan(p)
+m.fix_scan(p)
 m.close_connection()
 p.close_connection()
+
+'''
+re-write the saving section to write the data as separate columns but in the same file
+then use the .flush command to make sure the data is being saved during the loop
+otherise stopping the code results in all the data being lost.
+'''
