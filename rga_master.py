@@ -378,7 +378,7 @@ Import temp data
 temp_q = input('Want to work with temperature data? [y/n]\n')
 if temp_q == 'y':
     temp_file = input('Enter directory for temp file, ensure to delete the ""\n')
-    ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
+    temp_files, ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
     
     '''
     Parsing the temperature times

@@ -14,13 +14,14 @@ def read_temps(filename):
         data = list(csv.reader(csvfile))
     
     data=np.asarray(data)
-    times = data[:,0]
-    tzone1 = data[:,1].astype(float)
-    tzone2 = data[:,2].astype(float)
-    tzone3 = data[:,3].astype(float)
-    tzone4 = data[:,4].astype(float)
-    tzone5 = data[:,5].astype(float)
-    tzone6 = data[:,6].astype(float)
+    file = data[1:,0]
+    times = data[1:,1]
+    tzone1 = data[1:,2].astype(float)
+    tzone2 = data[1:,3].astype(float)
+    tzone3 = data[1:,4].astype(float)
+    tzone4 = data[1:,5].astype(float)
+    tzone5 = data[1:,6].astype(float)
+    tzone6 = data[1:,7].astype(float)
     
     # start_head_time = datetime.strptime(times[0],'%Y-%m-%d %H:%M:%S')
     # time_list=[]
@@ -32,10 +33,22 @@ def read_temps(filename):
     #     sec_diff = time_diff.total_seconds()
     #     time_from_start.append(sec_diff)
     
-    return times, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6
+    return file, times, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6
 
 
+# path = os.path.expanduser('D:/OneDrive - Arizona State University/LASI-Alpha/Documents/Sorted_data/Thermal System Zone Data/Data/2.9.23.csv')
+# with open(path,'r', encoding='utf-8-sig', newline='') as csvfile:
+#     data = list(csv.reader(csvfile))
 
+# data=np.asarray(data)
+# file = data[1:,0]
+# times = data[1:,1]
+# tzone1 = data[1:,2].astype(float)
+# tzone2 = data[1:,3].astype(float)
+# tzone3 = data[1:,4].astype(float)
+# tzone4 = data[1:,5].astype(float)
+# tzone5 = data[1:,6].astype(float)
+# tzone6 = data[1:,7].astype(float)
 
 
 
