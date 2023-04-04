@@ -16,6 +16,8 @@ import serial
 import time
 import csv
 import numpy as np
+import datetime
+import matplotlib.pyplot as plt
 #%%
 '''
 Section 1: Defining picoammeter functions and setting up the device.
@@ -49,39 +51,35 @@ class Pico(object):
     Reset and calibrate the picoammeter for measurements
     '''
     def setup(self):
-        print("\n\nDettach current source from picoammeter...")
-        input("Press [ENTER] to continue......")    
-        self.ser.write(('*RST' + '\r\n').encode())
-        self.ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
-        self.ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
-        self.ser.write(('SENS:CURR:NPLC 6' + '\r\n').encode())
-        self.ser.write(('DISP:ENAB OFF' + '\r\n').encode())
-        self.ser.write(('INIT' + '\r\n').encode())
-        self.ser.write(('DISP:ENAB ON' + '\r\n').encode())
-        self.ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
-        self.ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
-        print("\n\nAttach current source to picoammeter...")
-        input("Press [ENTER] to continue......")    
-        self.ser.write(('SYST:ZCH OFF' + '\r\n').encode())
-        time.sleep(2)
-        out = ''
-      # loop which reads out mean and stddev when calculations are finished
-        while self.ser.inWaiting() > 0:
-            response = self.ser.read(1)
-            if response == b'\n':
-                out += ','
-            else:
-                out += response.decode('utf-8')
-        if out != '':	
-          print(out)
-        
+      self.ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+      print("\n\nDettach current source from picoammeter...")
+      input("Press [ENTER] to continue......")    
+      self.ser.write(('*RST' + '\r\n').encode())
+      self.ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+      self.ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+      self.ser.write(('INIT' + '\r\n').encode())
+      self.ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+      self.ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+      print("\n\nAttach current source to picoammeter...")
+      input("Press [ENTER] to continue......")    
+      self.ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+      self.ser.write(('SYST:AZER ON' + '\r\n').encode())
+      time.sleep(2)
+      out = ''
+    # loop which reads out mean and stddev when calculations are finished
+      while self.ser.inWaiting() > 0:
+          response = self.ser.read(1)
+          if response == b'\n':
+              out += ','
+          else:
+              out += response.decode('utf-8')
+      if out != '':	
+        print(out)
 
     '''
     Multi_readings takes 20 readings, and then records the mean and stddev
     '''
     def multi_readings(self):
-      # define a data file
-        self.ser.write(('DISP:ENAB OFF' + '\r\n').encode())
         self.ser.write(('FORM:ELEM READ,TIME' + '\r\n').encode())
         self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
         self.ser.write(('TRIG:COUN 20' + '\r\n').encode())
@@ -93,7 +91,7 @@ class Pico(object):
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())
         self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
         self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
-        time.sleep(10)
+        time.sleep(12)
         out = ''
       # loop which reads out mean and stddev when calculations are finished
         while self.ser.inWaiting() > 0:
@@ -104,8 +102,8 @@ class Pico(object):
                 out += response.decode('utf-8')
         if out != '':	
           print(out)
-        self.ser.write(('DISP:ENAB ON' + '\r\n').encode())
         return out #this value can then be parsed with the .split(',') command
+
 #%%
 '''
 Section 2: This section sets up the monochromator in the best ways I know how
@@ -291,7 +289,7 @@ class Mono(object):
         input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
         current = float(input('Current Wavelength? HOME = 261.81\n'))
         start = 110.0
-        step = 5
+        step = 10
         end = 550.0
         filt = 1
         #get to starting location
@@ -301,18 +299,33 @@ class Mono(object):
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
             print("Starting Wavelength: "+str(start)+"nm  Reached\n")
-        #loop through the steps
+        
+        #Setup the plot
+        plt.ion()
+        fig, ax = plt.subplots()
+        x, y = [],[]
+        y2=[]
+        sc = ax.scatter(x,y)
+        sc2 = ax.scatter(x,y2)
+        plt.xlim(0,600)
+        plt.ylim(-6e-12,9e-11)
+        plt.legend(['Average','Standard Deviation'])
+        plt.draw()
+        
+        #setup the data
         wv = start
         avg = 'Average Current (A)'
         std = 'Standard Deviation'
-        sub = 'Dark Substracted Average'
+        sub = 'Dark Substracted, median dark = {:.2e}, std:{:.2e}'.format(dark_median,dark_std)
+        filters = 'Filter used: 1=none 2=160nm lp 3=220nm lp 4=320nm lp'
+       
+        #choose the NUV or FUV sampling
         if b == 1:    
             wl = 'Wavelength (nm) FUV Band'
             f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\FUV\\'+filename+'.csv', 'a')
         if b ==2:
             wl = 'Wavelength (nm) NUV Band'
             f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\NUV\\'+filename+'.csv', 'a')
-        filters = 'Filter used: 1=none 2=160nm lp 3=220nm lp 4=320nm lp'
         f.write('\n'+wl+','+avg+','+std+','+sub+','+filters)
         while wv < 160:
             print('Reading at {:.2f}'.format(wv))
@@ -326,16 +339,24 @@ class Mono(object):
             f.write('\n'+str(wl)+','+str(avg)+','+str(std)+','+str(sub)+','+str(filters))
             f.flush()
             
-            if b == 1:
-                if wv >= 118 and wv <= 206:
-                    step = 1
-                else:
-                    step = 5
-            if b == 2:
-                if wv >= 200 and wv <= 360:
-                    step = 1
-                else:
-                    step = 5
+            x.append(wv)
+            y.append(float(avg))
+            y2.append(float(std))
+            sc.set_offsets(np.c_[x,y])
+            sc2.set_offsets(np.c_[x,y2])
+            fig.canvas.draw_idle()
+            plt.pause(0.1)
+            
+            # if b == 1:
+            #     if wv >= 107 and wv <= 203:
+            #         step = 1
+            #     else:
+            #         step = 5
+            # if b == 2:
+            #     if wv >= 188 and wv <= 372:
+            #         step = 1
+            #     else:
+            #         step = 5
             Mono.move(self,step)
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
@@ -354,16 +375,24 @@ class Mono(object):
             f.write('\n'+str(wl)+','+str(avg)+','+str(std)+','+str(sub)+','+str(filters))
             f.flush()
             
-            if b == 1:
-                if wv >= 118 and wv <= 206:
-                    step = 1
-                else:
-                    step = 5
-            if b == 2:
-                if wv >= 200 and wv <= 360:
-                    step = 1
-                else:
-                    step = 5
+            x.append(wv)
+            y.append(float(avg))
+            y2.append(float(std))
+            sc.set_offsets(np.c_[x,y])
+            sc2.set_offsets(np.c_[x,y2])
+            fig.canvas.draw_idle()
+            plt.pause(0.1)
+            
+            # if b == 1:
+            #     if wv >= 107 and wv <= 203:
+            #         step = 1
+            #     else:
+            #         step = 5
+            # if b == 2:
+            #     if wv >= 188 and wv <= 372:
+            #         step = 1
+            #     else:
+            #         step = 5
             Mono.move(self,step)
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
@@ -382,16 +411,24 @@ class Mono(object):
             f.write('\n'+str(wl)+','+str(avg)+','+str(std)+','+str(sub)+','+str(filters))
             f.flush()
             
-            if b == 1:
-                if wv >= 118 and wv <= 206:
-                    step = 1
-                else:
-                    step = 5
-            if b == 2:
-                if wv >= 200 and wv <= 360:
-                    step = 1
-                else:
-                    step = 5
+            x.append(wv)
+            y.append(float(avg))
+            y2.append(float(std))
+            sc.set_offsets(np.c_[x,y])
+            sc2.set_offsets(np.c_[x,y2])
+            fig.canvas.draw_idle()
+            plt.pause(0.1)
+            
+            # if b == 1:
+            #     if wv >= 107 and wv <= 203:
+            #         step = 1
+            #     else:
+            #         step = 5
+            # if b == 2:
+            #     if wv >= 188 and wv <= 372:
+            #         step = 1
+            #     else:
+            #         step = 5
             Mono.move(self,step)
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
@@ -410,22 +447,32 @@ class Mono(object):
             f.write('\n'+str(wl)+','+str(avg)+','+str(std)+','+str(sub)+','+str(filters))
             f.flush()
             
-            if b == 1:
-                if wv >= 118 and wv <= 206:
-                    step = 1
-                else:
-                    step = 5
-            if b == 2:
-                if wv >= 200 and wv <= 360:
-                    step = 1
-                else:
-                    step = 5
+            x.append(wv)
+            y.append(float(avg))
+            y2.append(float(std))
+            sc.set_offsets(np.c_[x,y])
+            sc2.set_offsets(np.c_[x,y2])
+            fig.canvas.draw_idle()
+            plt.pause(0.1)
+            
+            # if b == 1:
+            #     if wv >= 107 and wv <= 203:
+            #         step = 1
+            #     else:
+            #         step = 5
+            # if b == 2:
+            #     if wv >= 188 and wv <= 372:
+            #         step = 1
+            #     else:
+            #         step = 5
             Mono.move(self,step)
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)   
+        plt.ylim(min(y+y2),max(y+y2))
         f.close()
         print('Scan Complete')
+
 
     '''
     Small test script to move the monochroamtor specific wavelength distances
