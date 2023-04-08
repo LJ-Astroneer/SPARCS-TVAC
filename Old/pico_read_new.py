@@ -4,88 +4,196 @@ Created on Mon May  2 12:41:31 2022
 @author: Logan Jensen
 """
 
-
-import serial
-import time
-
-class Pico(object):
-
-  def open_connection(self, port='COM9'):  
-
-    # configure the serial connections
-    self.ser = serial.Serial(
-      port=port,
-      baudrate=9600,
-      bytesize=serial.EIGHTBITS,
-      parity=serial.PARITY_NONE,
-      stopbits=serial.STOPBITS_ONE,
-      timeout=0.1)
-
-    #self.ser.open()
-    self.ser.readlines()
-    
-  
-  def close_connection(self, port='COM9'):
-    self.ser.close()    
-      
-  # reset and calibrate the picoammeter for measurements
-  def setup(self):
-    self.ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
-    print("\n\nDettach current source from picoammeter...")
-    input("Press [ENTER] to continue......")    
-    self.ser.write(('*RST' + '\r\n').encode())
-    self.ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
-    self.ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
-    self.ser.write(('INIT' + '\r\n').encode())
-    self.ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
-    self.ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
-    print("\n\nAttach current source to picoammeter...")
-    input("Press [ENTER] to continue......")    
-    self.ser.write(('SYST:ZCH OFF' + '\r\n').encode())
-    self.ser.write(('SYST:AZER ON' + '\r\n').encode())
-    time.sleep(2)
-    out = ''
-  # loop which reads out mean and stddev when calculations are finished
-    while self.ser.inWaiting() > 0:
-        response = self.ser.read(1)
-        if response == b'\n':
-            out += ','
-        else:
-            out += response.decode('utf-8')
-    if out != '':	
-      print(out)
-
-  # function which takes 20 readings, and then records the mean and stddev to 'Data.txt'
-  def multi_readings(self):
-      self.ser.write(('FORM:ELEM READ,TIME' + '\r\n').encode())
-      self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
-      self.ser.write(('TRIG:COUN 20' + '\r\n').encode())
-      self.ser.write(('TRAC:POIN 20' + '\r\n').encode())
-      self.ser.write(('TRAC:FEED SENS' + '\r\n').encode())
-      self.ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
-      self.ser.write(('INIT' + '\r\n').encode())
-      self.ser.write(('CALC3:FORM MEAN' + '\r\n').encode())
-      self.ser.write(('CALC3:DATA?' + '\r\n').encode())
-      self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
-      self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
-      time.sleep(12)
-      out = ''
-    # loop which reads out mean and stddev when calculations are finished
-      while self.ser.inWaiting() > 0:
-          response = self.ser.read(1)
-          if response == b'\n':
-              out += ','
-          else:
-              out += response.decode('utf-8')
-      if out != '':	
-        print(out)
-      return out #this value can then be parsed with the .split(',') command
-
-#%% The photodiode noise hunting code
 import datetime
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import serial
+import time
+
+class Pico(object):
+    def setup():
+        ser = serial.Serial(
+            port='COM9',
+            baudrate=9600,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=None)
+        ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+        print("\n\nDettach current source from picoammeter...")
+        input("Press [ENTER] to continue......")    
+        ser.write(('*RST' + '\r\n').encode())
+        ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+        ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+        ser.write(('INIT' + '\r\n').encode())
+        ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+        ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+        print("\n\nAttach current source to picoammeter...")
+        input("Press [ENTER] to continue......")    
+        ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+        ser.write(('SYST:AZER ON' + '\r\n').encode())
+        return(ser)
+
+    def read(ser):
+        ser.write(('FORM:ELEM READ' + '\r\n').encode())
+        ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+        ser.write(('TRIG:COUN 20' + '\r\n').encode())
+        ser.write(('TRAC:POIN 20' + '\r\n').encode())
+        ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+        ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+        ser.write(('INIT' + '\r\n').encode())
+        ser.write(('TRAC:DATA?' + '\r\n').encode())
+        out = ''
+        response = ser.readline()
+        out = response.decode('utf-8')
+        out = (out.strip('\n')).split(',')
+        out = [float(i) for i in out]
+        return out
+    
+    def close_connection(ser):
+        ser.close()    
+
+class Mono(object):
+    def sample(ser):
+        data = Pico.read(ser)
+        return data
+    # def open_connection(self, port='COM9'):  
+    
+    #   # configure the serial connections
+    #   self.ser = serial.Serial(
+    #     port=port,
+    #     baudrate=9600,
+    #     bytesize=serial.EIGHTBITS,
+    #     parity=serial.PARITY_NONE,
+    #     stopbits=serial.STOPBITS_ONE,
+    #     timeout=1)
+    
+    #   #self.ser.open()
+    #   self.ser.readlines()
+      
+    
+    # def close_connection(self, port='COM9'):
+    #   self.ser.close()    
+        
+    # # reset and calibrate the picoammeter for measurements
+    # def setup(self):
+    #   self.ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+    #   print("\n\nDettach current source from picoammeter...")
+    #   input("Press [ENTER] to continue......")    
+    #   self.ser.write(('*RST' + '\r\n').encode())
+    #   self.ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+    #   self.ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+    #   self.ser.write(('INIT' + '\r\n').encode())
+    #   self.ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+    #   self.ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+    #   print("\n\nAttach current source to picoammeter...")
+    #   input("Press [ENTER] to continue......")    
+    #   self.ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+    #   self.ser.write(('SYST:AZER ON' + '\r\n').encode())
+    #   time.sleep(2)
+    #   out = ''
+    # # loop which reads out mean and stddev when calculations are finished
+    #   while self.ser.inWaiting() > 0:
+    #       response = self.ser.read(1)
+    #       if response == b'\n':
+    #           out += ','
+    #       else:
+    #           out += response.decode('utf-8')
+    #   if out != '':	
+    #     print(out)
+    
+    # # function which takes 20 readings, and then records the mean and stddev to 'Data.txt'
+    # def multi_readings(self):
+    #     self.ser.write(('FORM:ELEM READ,TIME' + '\r\n').encode())
+    #     self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+    #     self.ser.write(('TRIG:COUN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:POIN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+    #     self.ser.write(('INIT' + '\r\n').encode())
+    #     self.ser.write(('CALC3:FORM MEAN' + '\r\n').encode())
+    #     self.ser.write(('CALC3:DATA?' + '\r\n').encode())
+    #     self.ser.write(('CALC3:FORM SDEV' + '\r\n').encode())
+    #     self.ser.write(('CALC3:DATA?' + '\r\n').encode())  
+    #     time.sleep(12)
+    #     out = ''
+    #   # loop which reads out mean and stddev when calculations are finished
+    #     while self.ser.inWaiting() > 0:
+    #         response = self.ser.read(1)
+    #         if response == b'\n':
+    #             out += ','
+    #         else:
+    #             out += response.decode('utf-8')
+    #     if out != '':	
+    #       print(out)
+    #     return out #this value can then be parsed with the .split(',') command
+    # def raw_readings(self):
+    #     self.ser.write(('FORM:ELEM READ' + '\r\n').encode())
+    #     self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+    #     self.ser.write(('TRIG:COUN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:POIN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+    #     self.ser.write(('INIT' + '\r\n').encode())
+    #     self.ser.write(('*OPC?' + '\r\n').encode())
+    #     self.ser.write(('TRAC:DATA?' + '\r\n').encode())
+    #     out = ''
+    #   # loop which reads out mean and stddev when calculations are finished
+    #     while self.ser.inWaiting() > 0:
+    #         response = self.ser.read(1)
+    #         if response == b'\n':
+    #             out += ','
+    #         else:
+    #             out += response.decode('utf-8')
+    #     if out != '':	
+    #       print(out)
+    #     return out #this value can then be parsed with the .split(',') command
+    # def raw(self):
+    #     self.ser = serial.Serial(
+    #         port='COM9',
+    #         baudrate=9600,
+    #         bytesize=serial.EIGHTBITS,
+    #         parity=serial.PARITY_NONE,
+    #         stopbits=serial.STOPBITS_ONE,
+    #         timeout=None)
+    #     self.ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+    #     print("\n\nDettach current source from picoammeter...")
+    #     input("Press [ENTER] to continue......")    
+    #     self.ser.write(('*RST' + '\r\n').encode())
+    #     self.ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+    #     self.ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+    #     self.ser.write(('INIT' + '\r\n').encode())
+    #     self.ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+    #     self.ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+    #     print("\n\nAttach current source to picoammeter...")
+    #     input("Press [ENTER] to continue......")    
+    #     self.ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+    #     self.ser.write(('SYST:AZER ON' + '\r\n').encode())
+        
+    #     self.ser.write(('FORM:ELEM READ' + '\r\n').encode())
+    #     self.ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+    #     self.ser.write(('TRIG:COUN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:POIN 20' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+    #     self.ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+    #     self.ser.write(('INIT' + '\r\n').encode())
+    #     self.ser.write(('TRAC:DATA?' + '\r\n').encode())
+    #     out = ''
+    #     response = self.ser.readline()
+    #     self.ser.close()
+    #     out = response.decode('utf-8')
+    #     out = (out.strip('\n')).split(',')
+    #     out = [float(i) for i in out]
+    #     return out
+#%%
+ser = Pico.setup()
+data = Pico.read(ser)
+Pico.close_connection(ser)
+
+       
+#%% The photodiode noise hunting code
+
 
 p = Pico()
 p.open_connection()
@@ -136,8 +244,65 @@ with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Do
         writer.writerow(row)  
 
 
+#%% Just reading normal data
+
+def setup():
+    ser = serial.Serial(
+        port='COM9',
+        baudrate=9600,
+        bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        timeout=None)
+    ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+    print("\n\nDettach current source from picoammeter...")
+    input("Press [ENTER] to continue......")    
+    ser.write(('*RST' + '\r\n').encode())
+    ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+    ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+    ser.write(('INIT' + '\r\n').encode())
+    ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+    ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+    print("\n\nAttach current source to picoammeter...")
+    input("Press [ENTER] to continue......")    
+    ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+    ser.write(('SYST:AZER ON' + '\r\n').encode())
+    return(ser)
+
+def read(ser):
+    ser.write(('FORM:ELEM READ' + '\r\n').encode())
+    ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+    ser.write(('TRIG:COUN 20' + '\r\n').encode())
+    ser.write(('TRAC:POIN 20' + '\r\n').encode())
+    ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+    ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+    ser.write(('INIT' + '\r\n').encode())
+    ser.write(('TRAC:DATA?' + '\r\n').encode())
+    out = ''
+    response = ser.readline()
+    out = response.decode('utf-8')
+    out = (out.strip('\n')).split(',')
+    out = [float(i) for i in out]
+    return out
 
 
+
+#%%%
+p = Pico()
+p.open_connection()
+p.setup()
+
+reads=[]
+for i in range(50):
+    data=p.raw_readings()
+    reads.extend(data.split(','))
+    reads.remove('')
+
+rows = zip(reads)
+with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\raw.csv', 'w',newline='') as f:
+    writer = csv.writer(f)
+    for row in rows:
+        writer.writerow(row)  
 
 
 
