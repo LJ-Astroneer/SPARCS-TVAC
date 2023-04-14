@@ -24,7 +24,8 @@ class Pico(object):
         print("\n\nDettach current source from picoammeter...")
         input("Press [ENTER] to continue......")    
         ser.write(('*RST' + '\r\n').encode())
-        ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+        #ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+        ser.write(('SENS:CURR:RANG AUTO ON' + '\r\n').encode())
         ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
         ser.write(('INIT' + '\r\n').encode())
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
@@ -38,8 +39,8 @@ class Pico(object):
     def read(ser):
         ser.write(('FORM:ELEM READ' + '\r\n').encode())
         ser.write(('ARM:SOUR IMM' + '\r\n').encode())
-        ser.write(('TRIG:COUN 20' + '\r\n').encode())
-        ser.write(('TRAC:POIN 20' + '\r\n').encode())
+        ser.write(('TRIG:COUN 50' + '\r\n').encode())
+        ser.write(('TRAC:POIN 50' + '\r\n').encode())
         ser.write(('TRAC:FEED SENS' + '\r\n').encode())
         ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
         ser.write(('INIT' + '\r\n').encode())
@@ -187,126 +188,153 @@ class Mono(object):
     #     out = [float(i) for i in out]
     #     return out
 #%%
-ser = Pico.setup()
-data = Pico.read(ser)
-Pico.close_connection(ser)
+# ser = Pico.setup()
+# data = Pico.read(ser)
+# Pico.close_connection(ser)
 
        
 #%% The photodiode noise hunting code
 
 
-p = Pico()
-p.open_connection()
-p.setup()
+# p = Pico()
+# p.open_connection()
+# p.setup()
 
 
-filename = input('Title of the file? No spaces or .csv\n')
+# filename = input('Title of the file? No spaces or .csv\n')
+# plt.ion()
+# fig, ax = plt.subplots()
+# x, y = [],[]
+# y2=[]
+# sc = ax.scatter(x,y)
+# sc2 = ax.scatter(x,y2)
+# plt.xlim(0,4000)
+# plt.ylim(-6e-12,2e-11)
+# plt.legend(['Average','Standard Deviation'])
+# plt.draw()
+
+# avg = []
+# std = []
+# times = []
+# #code repeats for an hour
+# time_start = datetime.datetime.now()
+# while (datetime.datetime.now() - time_start).total_seconds() < 3600:
+#     output = p.multi_readings()
+#     a = float(output.split(',')[0])
+#     s = float(output.split(',')[1])
+#     t = int((datetime.datetime.now() - time_start).total_seconds())
+#     avg.append(a)
+#     std.append(s)
+#     times.append(t)
+#     x.append(t)
+#     y.append(a)
+#     y2.append(s)
+#     sc.set_offsets(np.c_[x,y])
+#     sc2.set_offsets(np.c_[x,y2])
+#     fig.canvas.draw_idle()
+#     plt.pause(0.1)
+# plt.ylim(min(y+y2),max(y+y2))
+# print('done')
+# #plt.waitforbuttonpress()
+
+
+# rows = zip(times,avg,std)
+# with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\'+filename+'.csv', 'w',newline='') as f:
+#     writer = csv.writer(f)
+#     for row in rows:
+#         writer.writerow(row)  
+
+
+# #%% Just reading normal data
+
+# def setup():
+#     ser = serial.Serial(
+#         port='COM9',
+#         baudrate=9600,
+#         bytesize=serial.EIGHTBITS,
+#         parity=serial.PARITY_NONE,
+#         stopbits=serial.STOPBITS_ONE,
+#         timeout=None)
+#     ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+#     print("\n\nDettach current source from picoammeter...")
+#     input("Press [ENTER] to continue......")    
+#     ser.write(('*RST' + '\r\n').encode())
+#     ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+#     ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
+#     ser.write(('INIT' + '\r\n').encode())
+#     ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
+#     ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+#     print("\n\nAttach current source to picoammeter...")
+#     input("Press [ENTER] to continue......")    
+#     ser.write(('SYST:ZCH OFF' + '\r\n').encode())
+#     ser.write(('SYST:AZER ON' + '\r\n').encode())
+#     return(ser)
+
+# def read(ser):
+#     ser.write(('FORM:ELEM READ' + '\r\n').encode())
+#     ser.write(('ARM:SOUR IMM' + '\r\n').encode())
+#     ser.write(('TRIG:COUN 20' + '\r\n').encode())
+#     ser.write(('TRAC:POIN 20' + '\r\n').encode())
+#     ser.write(('TRAC:FEED SENS' + '\r\n').encode())
+#     ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+#     ser.write(('INIT' + '\r\n').encode())
+#     ser.write(('TRAC:DATA?' + '\r\n').encode())
+#     out = ''
+#     response = ser.readline()
+#     out = response.decode('utf-8')
+#     out = (out.strip('\n')).split(',')
+#     out = [float(i) for i in out]
+#     return out
+
+
+
+#%%%
+# p = Pico()
+# p.open_connection()
+# p.setup()
+
+# reads=[]
+# for i in range(50):
+#     data=p.raw_readings()
+#     reads.extend(data.split(','))
+#     reads.remove('')
+
+# rows = zip(reads)
+# with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\raw.csv', 'w',newline='') as f:
+#     writer = csv.writer(f)
+#     for row in rows:
+#         writer.writerow(row)  
+
 plt.ion()
 fig, ax = plt.subplots()
 x, y = [],[]
 y2=[]
 sc = ax.scatter(x,y)
-sc2 = ax.scatter(x,y2)
-plt.xlim(0,4000)
-plt.ylim(-6e-12,2e-11)
+plt.xlim(0,1000)
+plt.ylim(-6e-5,1e-4)
 plt.legend(['Average','Standard Deviation'])
 plt.draw()
 
-avg = []
-std = []
-times = []
-#code repeats for an hour
-time_start = datetime.datetime.now()
-while (datetime.datetime.now() - time_start).total_seconds() < 3600:
-    output = p.multi_readings()
-    a = float(output.split(',')[0])
-    s = float(output.split(',')[1])
-    t = int((datetime.datetime.now() - time_start).total_seconds())
-    avg.append(a)
-    std.append(s)
-    times.append(t)
-    x.append(t)
-    y.append(a)
-    y2.append(s)
+
+ser = Pico.setup()
+reads=[]
+for i in range(30):
+    data=Pico.read(ser)
+    reads.extend(data)
+    x.append(i)
+    y.append(np.mean(data))
+    print(y[-1])
     sc.set_offsets(np.c_[x,y])
-    sc2.set_offsets(np.c_[x,y2])
     fig.canvas.draw_idle()
     plt.pause(0.1)
-plt.ylim(min(y+y2),max(y+y2))
-print('done')
-#plt.waitforbuttonpress()
-
-
-rows = zip(times,avg,std)
-with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\'+filename+'.csv', 'w',newline='') as f:
-    writer = csv.writer(f)
-    for row in rows:
-        writer.writerow(row)  
-
-
-#%% Just reading normal data
-
-def setup():
-    ser = serial.Serial(
-        port='COM9',
-        baudrate=9600,
-        bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
-        timeout=None)
-    ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
-    print("\n\nDettach current source from picoammeter...")
-    input("Press [ENTER] to continue......")    
-    ser.write(('*RST' + '\r\n').encode())
-    ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
-    ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
-    ser.write(('INIT' + '\r\n').encode())
-    ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
-    ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
-    print("\n\nAttach current source to picoammeter...")
-    input("Press [ENTER] to continue......")    
-    ser.write(('SYST:ZCH OFF' + '\r\n').encode())
-    ser.write(('SYST:AZER ON' + '\r\n').encode())
-    return(ser)
-
-def read(ser):
-    ser.write(('FORM:ELEM READ' + '\r\n').encode())
-    ser.write(('ARM:SOUR IMM' + '\r\n').encode())
-    ser.write(('TRIG:COUN 20' + '\r\n').encode())
-    ser.write(('TRAC:POIN 20' + '\r\n').encode())
-    ser.write(('TRAC:FEED SENS' + '\r\n').encode())
-    ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
-    ser.write(('INIT' + '\r\n').encode())
-    ser.write(('TRAC:DATA?' + '\r\n').encode())
-    out = ''
-    response = ser.readline()
-    out = response.decode('utf-8')
-    out = (out.strip('\n')).split(',')
-    out = [float(i) for i in out]
-    return out
-
-
-
-#%%%
-p = Pico()
-p.open_connection()
-p.setup()
-
-reads=[]
-for i in range(50):
-    data=p.raw_readings()
-    reads.extend(data.split(','))
-    reads.remove('')
 
 rows = zip(reads)
-with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\raw.csv', 'w',newline='') as f:
+with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\light_noTIA.csv', 'w',newline='') as f:
     writer = csv.writer(f)
     for row in rows:
         writer.writerow(row)  
 
-
-
-
+#Pico.close_connection(ser)
 
 
 

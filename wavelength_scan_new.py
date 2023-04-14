@@ -38,6 +38,7 @@ class Pico(object):
         input("Press [ENTER] to continue......")    
         ser.write(('*RST' + '\r\n').encode())
         ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+        #ser.write(('SENS:CURR:RANG AUTO ON' + '\r\n').encode())
         ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
         ser.write(('INIT' + '\r\n').encode())
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
@@ -51,8 +52,8 @@ class Pico(object):
     def read(ser):
         ser.write(('FORM:ELEM READ' + '\r\n').encode())
         ser.write(('ARM:SOUR IMM' + '\r\n').encode())
-        ser.write(('TRIG:COUN 20' + '\r\n').encode())
-        ser.write(('TRAC:POIN 20' + '\r\n').encode())
+        ser.write(('TRIG:COUN 100' + '\r\n').encode())
+        ser.write(('TRAC:POIN 100' + '\r\n').encode())
         ser.write(('TRAC:FEED SENS' + '\r\n').encode())
         ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
         ser.write(('INIT' + '\r\n').encode())
@@ -202,7 +203,7 @@ class Mono(object):
         input('Ensure Monochromator filter wheel is set to #1: Empty \nThen Press [Enter]')
         current = float(input('Current Wavelength? HOME = 261.81\n'))
         start = 110.0
-        step = 10
+        step = 5
         end = 550.0
         filt = 1
         #get to starting location
@@ -259,7 +260,7 @@ class Mono(object):
             sc2.set_offsets(np.c_[x,y2])
             fig.canvas.draw_idle()
             plt.pause(0.1)
-            
+            print(avg)
             # if b == 1:
             #     if wv >= 107 and wv <= 203:
             #         step = 1
@@ -276,7 +277,7 @@ class Mono(object):
                 time.sleep(1)
         input('Change Monochromator filter to #2, then press [ENTER]')
         filt = 2
-        while wv < 300:
+        while wv < 280:
             print('Reading at {:.2f}'.format(wv))
             output = Pico.read(ser)
             wl = wv
@@ -295,7 +296,7 @@ class Mono(object):
             sc2.set_offsets(np.c_[x,y2])
             fig.canvas.draw_idle()
             plt.pause(0.1)
-            
+            print(avg)
             # if b == 1:
             #     if wv >= 107 and wv <= 203:
             #         step = 1
@@ -331,7 +332,7 @@ class Mono(object):
             sc2.set_offsets(np.c_[x,y2])
             fig.canvas.draw_idle()
             plt.pause(0.1)
-            
+            print(avg)
             # if b == 1:
             #     if wv >= 107 and wv <= 203:
             #         step = 1
@@ -367,7 +368,7 @@ class Mono(object):
             sc2.set_offsets(np.c_[x,y2])
             fig.canvas.draw_idle()
             plt.pause(0.1)
-            
+            print(avg)
             # if b == 1:
             #     if wv >= 107 and wv <= 203:
             #         step = 1
@@ -382,7 +383,12 @@ class Mono(object):
             wv+=step
             while Mono.write(self,'^') != '^   0 \r\n':
                 time.sleep(1)
-        plt.ylim(min(y+y2),max(y+y2))
+        plt.figure()
+        plt.scatter(x,y)
+        plt.errorbar(x,y,xerr=step/2,yerr=y2,fmt='o')
+        plt.xlabel('Wavelength (nm)')
+        plt.ylabel('Average Current (Amp)')
+        plt.title('Current versus wavelength with error')
         f.close()
         rows = zip(x,reads)
         with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_dark.csv', 'w',newline='') as f:
@@ -418,7 +424,7 @@ Section 4: The Execution block
 ser,m = setup()
 m.full_scan(ser)
 m.close_connection()
-Pico.close_connection()
+Pico.close_connection(ser)
 
 '''
 re-write the saving section to write the data as separate columns but in the same file

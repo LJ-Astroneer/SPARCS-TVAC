@@ -37,6 +37,19 @@ class Pump(object):
         if out != '':	
           print(out)
         return out
+    def set_pres(self):
+        self.ser.write(b'#00B0UTURBOUDRY6.0E+01\r\n')
+        time.sleep(1)   
+       
+        out = ''
+        # loop which reads out mean and stddev when calculations are finished
+        while self.ser.inWaiting() > 0:
+            response = self.ser.read(2)
+            response = response.decode("utf-8")
+            out += response
+        if out != '':	
+          print(out)
+        return out
     
     def read_dry(self):
         self.ser.write(b'#0002UDRY\r\n')
