@@ -37,8 +37,8 @@ class Pico(object):
         print("\n\nDettach current source from picoammeter...")
         input("Press [ENTER] to continue......")    
         ser.write(('*RST' + '\r\n').encode())
-        ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
-        #ser.write(('SENS:CURR:RANG AUTO ON' + '\r\n').encode())
+        #ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
+        ser.write(('SENS:CURR:RANG AUTO ON' + '\r\n').encode())
         ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
         ser.write(('INIT' + '\r\n').encode())
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
@@ -221,10 +221,7 @@ class Mono(object):
         y2=[]
         sc = ax.scatter(x,y)
         sc2 = ax.scatter(x,y2)
-        plt.xlim(0,600)
-        plt.ylim(-6e-12,9e-11)
-        plt.legend(['Average','Standard Deviation'])
-        plt.draw()
+
         
         #setup the data
         wv = start
@@ -237,9 +234,17 @@ class Mono(object):
         if b == 1:    
             wl = 'Wavelength (nm) FUV Band'
             f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\FUV\\'+filename+'.csv', 'a')
+            plt.xlim(0,600)
+            plt.ylim(-6e-12,2e-9)
+            plt.legend(['Average','Standard Deviation'])
+            plt.draw()
         if b ==2:
             wl = 'Wavelength (nm) NUV Band'
             f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\NUV\\'+filename+'.csv', 'a')
+            plt.xlim(0,600)
+            plt.ylim(-6e-12,7e-10)
+            plt.legend(['Average','Standard Deviation'])
+            plt.draw()
         f.write('\n'+wl+','+avg+','+std+','+sub+','+filters)
         while wv < 160:
             print('Reading at {:.2f}'.format(wv))
@@ -391,7 +396,7 @@ class Mono(object):
         plt.title('Current versus wavelength with error')
         f.close()
         rows = zip(x,reads)
-        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'_dark.csv', 'w',newline='') as f:
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'.csv', 'w',newline='') as f:
             writer = csv.writer(f)
             for row in rows:
                 writer.writerow(row) 

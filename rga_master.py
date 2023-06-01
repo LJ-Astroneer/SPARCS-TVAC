@@ -433,7 +433,7 @@ def health_check():
     y = pressure_fil_on.copy()
     mag_diff = np.log10(x)-np.log10(y)
     plt.figure()
-    plt.plot(mag_diff)
+    plt.scatter(np.arange(len(mag_diff)),mag_diff)
     plt.title('Magnitude difference between sum of partial pressures and total pressure')
     plt.ylabel('Magnitude difference log10(sum)-log10(total)')
     print(mag_diff)
