@@ -403,9 +403,9 @@ def comp_3():
     third = np.where(ht_arr==third_t)[0][0]
     plt.figure()
     m=MarkerStyle('o','none')
-    plt.plot(amu_int[first],pp_int[first],label='{num}'.format(num=first_t),c='r')
-    plt.plot(amu_int[second],pp_int[second],label='{num}'.format(num=second_t),c='k')
-    plt.plot(amu_int[third],pp_int[third],label='{num}'.format(num=third_t),c='b')
+    plt.plot(amu[first],pp[first],label='{num}'.format(num=first_t),c='r')
+    plt.plot(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
+    plt.plot(amu[third],pp[third],label='{num}'.format(num=third_t),c='b')
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='CCP metric  >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='CCP metric  >150 amu <3E-12 Torr',c='m')
