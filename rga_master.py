@@ -42,7 +42,7 @@ j = 0
 date = input('What RGA folder?\n')
 
 #date = '5.5.22'
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
+path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(date)
 path = os.path.abspath(path)
 folder = os.listdir(path)     
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
@@ -291,6 +291,7 @@ if new_q == 'y':
     plt.legend()
     plt.axvline(x=80,c='c')
     plt.axvline(x=150,c='m')
+    plt.grid(True,'both','both',linestyle='--')
     plt.show()
 
 def custom_fullplot():
@@ -346,6 +347,7 @@ if comp_q=='y':
     plt.title('Comparison plot of '+str(first_t)+'and '+str(second_t))
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
+    plt.grid(True,'both','both')
     plt.legend()
     plt.show()
     plt.figure()
