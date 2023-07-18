@@ -317,6 +317,7 @@ def custom_fullplot():
     plt.title(str(first_t)+' RGA scan')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
+    plt.grid(True,'both','both',linestyle='--')
     plt.legend()
     plt.show()
     
@@ -360,6 +361,7 @@ if comp_q=='y':
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (Torr)')
     plt.legend()
+    plt.grid(True,'both','both',linestyle='--')
     plt.show()
 
 def comp_2():
@@ -374,8 +376,8 @@ def comp_2():
     tbtw = int(hour[second]-hour[first])
     plt.figure()
     m=MarkerStyle('o','none')
-    plt.scatter(amu_int[first],pp_int[first],label='{num}'.format(num=first_t),c='r',s=3)
-    plt.scatter(amu_int[second],pp_int[second],label='{num}'.format(num=second_t),c='k',s=3)
+    plt.plot(amu[first],pp[first],label='{num}'.format(num=first_t),c='r')
+    plt.plot(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='CCP metric  >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='CCP metric  >150 amu <3E-12 Torr',c='m')
@@ -387,7 +389,14 @@ def comp_2():
     plt.title('Comparison plot of '+str(first_t)+'and '+str(second_t))
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.legend()
+    ans = input('Custom Labels? [y/n]\n')
+    if ans == 'y':
+        f = input('Input 1st label\n')
+        s = input('Input 2nd label\n')
+        plt.legend([f,s])
+    else:
+        plt.legend()
+    plt.grid(True,'both','both',linestyle='--')
     plt.show()
 
 def comp_3():
@@ -415,14 +424,15 @@ def comp_3():
     plt.title('Comparison plot')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
-    ans = input('Custom Labels?')
+    ans = input('Custom Labels? [y/n]\n')
     if ans == 'y':
-        f = input('Input 1st label')
-        s = input('Input 2nd label')
-        t = input('Input 3rd label')
+        f = input('Input 1st label\n')
+        s = input('Input 2nd label\n')
+        t = input('Input 3rd label\n')
         plt.legend([f,s,t])
     else:
         plt.legend()
+    plt.grid(True,'both','both',linestyle='--')
     plt.show()
 
 #%% Check RGA is working well
