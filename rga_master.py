@@ -44,13 +44,18 @@ date = input('What RGA folder?\n')
 path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
 path = os.path.abspath(path)
 folder = os.listdir(path)
+dupes = 0
 for i in folder:
     if date in i:
         path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
         path = os.path.abspath(path)
         folder = os.listdir(path)
         print(i)
-        
+        dupes += 1
+if dupes > 1:
+    print("More than one match, be more specific on folder name")
+    sys.exit(0)
+    
 for entry in tqdm(folder, desc='Reading Files',ncols=100):
     with open(path+'\\'+entry, 'r') as file:
         text = file.readlines()
