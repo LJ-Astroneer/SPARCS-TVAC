@@ -41,12 +41,12 @@ j = 0
 
 date = input('What RGA folder?\n')
 
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
+path = r'C:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
 path = os.path.abspath(path)
 folder = os.listdir(path)
 for i in folder:
     if date in i:
-        path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
+        path = r'C:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
         path = os.path.abspath(path)
         folder = os.listdir(path)
         print(i)
@@ -292,7 +292,7 @@ if new_q == 'y':
     line = np.arange(0,301,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='CCP metric  >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='CCP metric  >150 amu <3E-12 Torr',c='m')
-    annotation = "Total Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(pressure[-1],hour[-1])
+    annotation = "Total Pressure = {:.2e} Torr".format(pressure[-1])
     plt.plot([], [], ' ', label=annotation)
     plt.legend()
     plt.axvline(x=80,c='c')
