@@ -65,6 +65,7 @@ def interpolate_width(axis):
 
     return r2-r1 #this is the FWHM along the specified axis
 
+
 path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\20240221\MED_NUV_2um.fits"
 image_file = astropy.io.fits.open(path, cache=True)
 image_data = fits.getdata(path)
