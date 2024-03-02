@@ -264,7 +264,7 @@ for BAND in BAND:
     for i in np.arange(len(df)):
         row = df.iloc[i]    
         file = row['Label']
-        path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\20240222\\"+file
+        path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+file
         image_file = astropy.io.fits.open(path, cache=True)
         image_data = fits.getdata(path)
         x = int(row['X(FITS)_T1'])
