@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import astropy
 from astropy.io import fits
 from matplotlib.colors import LogNorm
+means = []
 #%% SNR plots and FWHM learning
 
 # path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\20240222\FUV_photometry_Measurements_adaptive.csv"
@@ -229,27 +230,38 @@ Requirements to Run:
         There are 2 files below because adaptive aperture gave a better fwhm, if you do not want 2 seperate files, delete the second import
     -a folder where that photometry file and all of your desired image files are saved
     -the hexagon csv saved where it is
+    
+    
+    NOTE the assumption about the dark current works VERY well for short exxposures
+    and when we had a 10um pinhole the exposures were short (~0.1s) so you could 
+    always see that asymptote to 100% if you plotted enough pixels in radius
+    HOWEVER when we used the 2um pinhole that was not the case, the exposures 
+    were more on the order of 10s and not having dark subtraction or bad pixel
+    removal would lead to enough error that you would not see the asymptote 
+    beyond ~7 pixels.
+    
+center    All data before 031824 was with the 2um pinhole
 '''
-folder = input("What folder you want?! (20240222,) \n")
-BAND = ['FUV','NUV']
+folder = input("What folder you want?! (20240222,20240318/final_today,20240321) \n")
+BAND = ['NUV']#,'NUV']
 for BAND in BAND:
     path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
     df = pandas.read_csv(path,delimiter=',')
     fwhm = df['Width_T1']
-    path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_10.csv"
+    path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
     df = pandas.read_csv(path,delimiter=',')
     x = df['X(FITS)_T1']
     y = df['Y(FITS)_T1']
     snr = df['Source_SNR_T1']
     
-    if BAND == 'NUV':
-        x=x.copy()
-        y=y.copy()
-        y[x<150] = np.nan
-        x[x<150] = np.nan
+    # if BAND == 'NUV':
+    #     x=x.copy()
+    #     y=y.copy()
+    #     y[x<150] = np.nan
+    #     x[x<150] = np.nan
     
     fig,ax=plt.subplots()
-    ax.set_xlim([0,1175])
+    ax.set_xlim([0,1065])
     ax.set_ylim([0,1033])
     sc = plt.scatter(x,y,s=fwhm*50,c=snr)
     plt.colorbar()
@@ -267,11 +279,12 @@ for BAND in BAND:
         path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+file
         image_file = astropy.io.fits.open(path, cache=True)
         image_data = fits.getdata(path)
+        image_data = image_data[:,:1065]
         x = int(row['X(FITS)_T1'])
         y = int(row['Y(FITS)_T1'])
         mask = np.empty((len(image_data), len(image_data[0])), dtype=np.uint16)
         
-        radii = np.arange(7,-1,-1)
+        radii = np.arange(5,-1,-1)
         for i in radii:
             radius_ix = np.arange(x-i,x+i+1,1)
             radius_iy = np.arange(y-i,y+i+1,1)
@@ -291,12 +304,16 @@ for BAND in BAND:
         ee.reverse()
         
         darkmask = np.empty((len(image_data), len(image_data[0])), dtype=np.uint16)
-        dradius = 20
+        dradius = 30 #outer dark radius
         radius_ix = np.arange(x-dradius,x+dradius+1,1)
         radius_iy = np.arange(y-dradius,y+dradius+1,1)
         xv, yv = np.meshgrid(radius_ix,radius_iy)
         darkmask[yv,xv] = 1
-        darkmask[mask!=0] = 0
+        dradius_in = 20
+        radius_ix = np.arange(x-dradius_in,x+dradius_in+1,1)
+        radius_iy = np.arange(y-dradius_in,y+dradius_in+1,1)
+        xv, yv = np.meshgrid(radius_ix,radius_iy)
+        darkmask[yv,xv] = 0
         dark = np.median(image_data[darkmask!=0])
         dark_error = np.std(image_data[darkmask!=0])
         
@@ -325,9 +342,9 @@ for BAND in BAND:
     
     #radial field calculation
     if BAND == 'FUV':
-        FOV_center = 430,550
+        FOV_center = 500,500
     elif BAND == 'NUV':
-        FOV_center = 500,550
+        FOV_center = 500,500
     x = df['X(FITS)_T1']
     y = df['Y(FITS)_T1']
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
@@ -336,12 +353,14 @@ for BAND in BAND:
     for i in np.arange(len(r_arcmin)):
         if r_arcmin[i] <= 20:
             plt.plot(rad,ratios_array[int(i)],label='Radius = '+'{:.1f}'.format(r_arcmin[i])+"'",marker='x')
-    # plt.legend() 
-    plt.title(BAND+' Enclosed energy for all points within 40" FOV (estimated position)')
+    # plt.legend()
+    # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
+    plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
     plt.xlabel('Radius (um)')
     plt.ylabel('Percent enclosed energy (%)')
     plt.xlim((0,20))
     
+    # means.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the means for later analysis
     #import the actual hexagon data
     def Hex_import():
         path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\Hexagon_OpticalPerf_data.csv"
@@ -369,3 +388,26 @@ for BAND in BAND:
     for i in np.arange(len(hex_label)):
         plt.scatter(hex_rad[i],hex_frac[i],label=hex_label[i])
     plt.legend()
+    
+    print(np.min(fwhm))
+#%%
+labels = ['pre-focus FUV','pre-focus NUV','minus 0.01 FUV','minus 0.01 NUV','plus 0.01 FUV','plus 0.01 NUV','plus0.015 FUV','plus0.015 NUV','plus 0.025FUV','plus 0.025NUV','FUV final','NUV final','NUV final2']
+for i in [0,2,4,6,8,10]:
+    plt.plot(rad,means[i],marker='x',label=labels[i])
+plt.title('FUV Enclosed energy for Focus')
+plt.xlabel('Radius (um)')
+plt.ylabel('Ratio Enclosed energy')
+plt.xlim((0,20))
+plt.legend()
+
+plt.figure()
+for i in [1,3,5,7,9,11,12]:
+    plt.plot(rad,means[i],marker='x',label=labels[i])
+plt.title('NUV Enclosed energy for Focus')
+plt.xlabel('Radius (um)')
+plt.ylabel('Ratio Enclosed energy')
+plt.xlim((0,20))
+plt.legend()
+    
+    
+    
