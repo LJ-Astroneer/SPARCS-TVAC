@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import astropy
 from astropy.io import fits
 from matplotlib.colors import LogNorm
+from matplotlib import colors
 means = []
 #%% SNR plots and FWHM learning
 
@@ -222,6 +223,119 @@ means = []
 # for i in np.arange(len(hex_label)):
 #     plt.scatter(hex_rad[i],hex_frac[i],label=hex_label[i])
 # plt.legend()
+#%% Single file version
+
+folder = '20240322'
+BAND = ['FUV']#,'NUV']
+for BAND in BAND:
+    path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
+    df = pandas.read_csv(path,delimiter=',')
+    fwhm = df['Width_T1']
+    x = df['X(FITS)_T1']
+    y = df['Y(FITS)_T1']
+    snr = df['Source_SNR_T1']
+    FOV_center = 500,500 #working assumption for now
+    r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2) #finding the radius from the center for all images
+    index = np.where(r==min(r))[0][0] #right now I just want to choose the center most image
+    
+    #make some lists to fill
+    ee_darksub_array = []
+    ratios_array = []
+    percents_array = []
+    for i in [index]:
+        row = df.iloc[i]    #just collects all the info from that row
+        file = row['Label'] #filename
+        path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+file
+        image_file = astropy.io.fits.open(path, cache=True) #open fit
+        image_data = fits.getdata(path) #get data
+        image_data = image_data[:,:1065] #trim off the overscan
+        x = int(row['X(FITS)_T1']) #all the X centroids 
+        y = int(row['Y(FITS)_T1']) #all the Y centroids
+        
+        mask = np.empty((len(image_data), len(image_data[0])), dtype=np.uint16) #this will be an array that is used for selecting areas of an image
+        radii = np.arange(10,-1,-1) #the radii to cover, list is reversed because you want to start with the largest and go to the smallest because each mask is on 'top' of the previous
+        for i in radii:
+            radius_ix = np.arange(x-i,x+i+1,1) #x values centered on the centroid X
+            radius_iy = np.arange(y-i,y+i+1,1) #y values centered on the centroid Y
+            xv, yv = np.meshgrid(radius_ix,radius_iy) #makes a grid to fill in all the x and y values between the bounds
+            mask[yv,xv] = i+1 #each layer has a value to assist in identifying the masks later. 
+            
+        num = []
+        ee = []
+        rad = []
+        for i in radii:
+            enc = np.where((mask > 0) & (mask <= i+1)) #mask=0 for unused pixels, and you want everything inside a radius
+            num.append(len(enc[0])) #count the pixels in each radius, will need for dark subtraction later
+            ee.append(np.sum(image_data[enc])) #actually sum up the energy enclosed
+            rad.append((i+0.5)*13) #convert the radius to microns for SPARCS 13um per pixel, the center pixel has a radius of 0.5
+        #flip these all because right now they are outside in and we want to plot from the middle out
+        num.reverse()
+        rad.reverse()
+        ee.reverse()
+        
+        #now make another mask for the background/dark annulus
+        darkmask = np.empty((len(image_data), len(image_data[0])), dtype=np.uint16)
+        dradius = 80 #outer annulus radius
+        radius_ix = np.arange(x-dradius,x+dradius+1,1)
+        radius_iy = np.arange(y-dradius,y+dradius+1,1)
+        xv, yv = np.meshgrid(radius_ix,radius_iy)
+        darkmask[yv,xv] = 1 #sets everything inside of outer pix radius to 1
+        dradius_in = 40 #inner annulus radius
+        radius_ix = np.arange(x-dradius_in,x+dradius_in+1,1)
+        radius_iy = np.arange(y-dradius_in,y+dradius_in+1,1)
+        xv, yv = np.meshgrid(radius_ix,radius_iy)
+        darkmask[yv,xv] = 0 #sets inside of inner pix radius to 0
+        #everything that is NOT 0 in darkmask is being used for the dark counting
+        
+        #make an image of the mask just to have for reference if you want it
+        plt.figure()
+        tempmask = mask+darkmask*-1
+        plt.imshow(tempmask)
+        plt.title('Maksing for Encircled Energy')
+        
+        
+        
+        
+        dark = image_data[darkmask!=0] #take all the image pixels in that annulus
+        dark_mean = np.mean(dark) #mean of the dark
+        dark_std = np.std(dark) #std of the dark
+        #to be extra fancy we are going to implement a 3sigma cutoff a la Howell to improve the stats
+        dark_cutoff = dark[(dark > dark_mean-3*dark_std) & (dark < dark_mean+3*dark_std)]
+        cutoff_num = len(dark) - len(dark_cutoff) #just to have as a reference of how many pixels fell outside of this range
+        dark_mean = np.mean(dark_cutoff) #mean of the dark
+        
+        #make a nice plot of background distribution for stats
+        plt.figure()
+        plt.hist(dark_cutoff,bins='auto') #Statistics, show a nice plot for the dark current
+        plt.title('Distributaiton of Background Pixels')
+        plt.xlabel('Pixel value')
+        plt.legend(['Mean = {:.1f}, Std. Dev. = {:.1f}'.format(dark_mean,dark_std)])
+        
+        total_dark = [i*dark_mean for i in num] #simply mulitply the backround by the number of pixels in each source radius
+        ee_darksub = [xi-yi for xi,yi in zip(ee,total_dark)] #subtract the total dark from the encircled energies
+        ratios = [i/ee_darksub[-1] for i in ee_darksub] #the ratio of each radii's energy to the largest radii's energy
+        percents = [i*100 for i in ratios] #convert to percent if you want it
+        
+        #now we have to also insert a 0,0 point for better plotting and such
+        ratios.insert(0,0)
+        percents.insert(0,0)
+        rad.insert(0,0)
+        
+        #these only matter when doing muplitple files
+        ee_darksub_array.append(ee_darksub)
+        ratios_array.append(ratios)
+        percents_array.append(percents)
+
+    #radial field calculation, here I select all the results that
+
+    plt.figure() 
+    plt.plot(rad,ratios,marker='x')
+    plt.title(BAND+' Enclosed energy')
+    plt.xlabel('Radius (um)')
+    plt.ylabel('Fractional enclosed energy')
+    #plt.xlim((0,20))
+
+
 #%% Make it all happen in 1 click
 '''
 Requirements to Run: 
@@ -314,7 +428,7 @@ for BAND in BAND:
         radius_iy = np.arange(y-dradius_in,y+dradius_in+1,1)
         xv, yv = np.meshgrid(radius_ix,radius_iy)
         darkmask[yv,xv] = 0
-        dark = np.median(image_data[darkmask!=0])
+        dark = np.mean(image_data[darkmask!=0])
         dark_error = np.std(image_data[darkmask!=0])
         
         total_dark = [i*dark for i in num]
