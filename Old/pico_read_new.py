@@ -20,29 +20,37 @@ class Pico(object):
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             timeout=None)
+        ser.write(('*RST' + '\r\n').encode())
         ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
+        ser.write(('DISP:ENAB OFF' + '\r\n').encode())
+        ser.write(('RANG 2e-9' + '\r\n').encode())
+        ser.write(('SENS:CURR:NPLC 6' + '\r\n').encode()) #exp 10 May DCJ
+        ser.write(('INIT' + '\r\n').encode())
         print("\n\nDettach current source from picoammeter...")
         input("Press [ENTER] to continue......")    
-        ser.write(('*RST' + '\r\n').encode())
-        #ser.write(('SENS:CURR:RANG 2e-9' + '\r\n').encode())
-        ser.write(('SENS:CURR:RANG AUTO ON' + '\r\n').encode())
-        ser.write(('SENS:CURR:NPLC 10' + '\r\n').encode()) #60
-        ser.write(('INIT' + '\r\n').encode())
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
-        ser.write(('SYST:ZCOR ON' + '\r\n').encode()) 
+        ser.write(('SYST:ZCOR ON' + '\r\n').encode())
+        ser.write(('RANG:AUTO ON' + '\r\n').encode())
+        ser.write(('SYST:AZER ON' + '\r\n').encode())
         print("\n\nAttach current source to picoammeter...")
         input("Press [ENTER] to continue......")    
         ser.write(('SYST:ZCH OFF' + '\r\n').encode())
-        ser.write(('SYST:AZER ON' + '\r\n').encode())
+        ser.write(('DISP:ENAB ON' + '\r\n').encode())
         return(ser)
 
     def read(ser):
+        #after pg 102 of manual "1000 readings/second into internal buffer
+        ser.write(('DISP:ENAB OFF' + '\r\n').encode())
+        ser.write(('*CLS' + '\r\n').encode())
         ser.write(('FORM:ELEM READ' + '\r\n').encode())
-        ser.write(('ARM:SOUR IMM' + '\r\n').encode())
-        ser.write(('TRIG:COUN 50' + '\r\n').encode())
-        ser.write(('TRAC:POIN 50' + '\r\n').encode())
+        ser.write(('TRIG:COUN 5' + '\r\n').encode())  #exp 10 May  DCJ
+        ser.write(('TRAC:POIN 5' + '\r\n').encode())  #exp 10 May DCJ
+        ser.write(('TRAC:CLE'+'\r\n').encode()) #clear buffer
         ser.write(('TRAC:FEED SENS' + '\r\n').encode())
-        ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode())
+        ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode()) #set storage control to start on next reading
+        ser.write(('STAT:MEAS:ENAB 512' + '\r\n').encode()) #enable buffer full measurement event
+        ser.write(('*SRE 1' + '\r\n').encode()) #enable SRQ on buffer full measurement event
+        #here the example does a *OPC? and then waits on the result. We are not doing this yet. Is it important?!?
         ser.write(('INIT' + '\r\n').encode())
         ser.write(('TRAC:DATA?' + '\r\n').encode())
         out = ''
@@ -50,7 +58,7 @@ class Pico(object):
         out = response.decode('utf-8')
         out = (out.strip('\n')).split(',')
         out = [float(i) for i in out]
-        return out
+        return out,response
     
     def close_connection(ser):
         ser.close()    
@@ -59,6 +67,8 @@ class Mono(object):
     def sample(ser):
         data = Pico.read(ser)
         return data
+    #%%
+    
     # def open_connection(self, port='COM9'):  
     
     #   # configure the serial connections
@@ -285,7 +295,7 @@ class Mono(object):
 #     out = (out.strip('\n')).split(',')
 #     out = [float(i) for i in out]
 #     return out
-
+#%%
 
 
 #%%%
@@ -304,40 +314,71 @@ class Mono(object):
 #     writer = csv.writer(f)
 #     for row in rows:
 #         writer.writerow(row)  
-
+#%%
 plt.ion()
-fig, ax = plt.subplots()
+f = plt.figure()
+f.set_figheight(7)
+f.set_figwidth(10)
+graph1 = f.add_subplot(221)
+graph2 = f.add_subplot(222)
+graph3 = f.add_subplot(223)
+graph4 = f.add_subplot(224)
+
 x, y = [],[]
 y2=[]
-sc = ax.scatter(x,y)
-plt.xlim(0,1000)
-plt.ylim(-6e-5,1e-4)
-plt.legend(['Average','Standard Deviation'])
-plt.draw()
-
-
-ser = Pico.setup()
+def graph(x,y,y2,reads):
+    graph1.clear()
+    graph2.clear()
+    graph3.clear()
+    graph4.clear()
+    graph1.errorbar(x,y,yerr=y2,fmt='o',capsize=3)
+    graph1.set_title('Median w/ Std.dev Error')
+    graph2.errorbar(x,y,yerr=y2,fmt='o',capsize=3)
+    graph2.set_title('Median w/ Std.dev Error (log)')
+    graph2.set_yscale('log')
+    graph3.plot(reads)
+    graph3.set_title('Raw data')
+    graph4.plot(reads)
+    graph4.set_title('Raw data (log)')
+    graph4.set_yscale('log')
+    f.canvas.draw()
+    f.canvas.flush_events()
 reads=[]
-for i in range(30):
-    data=Pico.read(ser)
-    reads.extend(data)
-    x.append(i)
-    y.append(np.mean(data))
-    print(y[-1])
-    sc.set_offsets(np.c_[x,y])
-    fig.canvas.draw_idle()
-    plt.pause(0.1)
+graph(x,y,y2,reads)
+ser = Pico.setup()
 
-rows = zip(reads)
-with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\light_noTIA.csv', 'w',newline='') as f:
-    writer = csv.writer(f)
-    for row in rows:
-        writer.writerow(row)  
+# dark=[]
+# for i in range(5):
+#     data=Pico.read(ser)
+#     dark.extend(data)
+#     print(np.median(dark))
+# d_med=np.median(dark)
+# d_std=np.std(dark)
+
+
+
+# for i in range(1000):
+i=0
+while True:
+    try:
+        data,response=Pico.read(ser)
+        reads.extend(data)
+        x.append(i)
+        y.append(np.median(data))
+        y2.append(np.std(data))
+        print("Median = {:.2e} Std.Dev = {:.2e}".format(y[-1],y2[-1]))
+        graph(x,y,y2,reads)
+        i+=1
+    except(KeyboardInterrupt):
+        Pico.close_connection(ser)
+Pico.close_connection(ser)
+# rows = zip(reads)
+# with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\TEMP.csv', 'w',newline='') as f:
+#     writer = csv.writer(f)
+#     for row in rows:
+#         writer.writerow(row)  
 
 #Pico.close_connection(ser)
-
-
-
 
 
 
