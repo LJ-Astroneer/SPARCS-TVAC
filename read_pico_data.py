@@ -4,7 +4,7 @@ import ast
 import matplotlib.pyplot as plt
 from scipy import stats
 
-file = pd.read_csv('C:/Users/sesel/OneDrive - Arizona State University/LASI-Alpha/Documents/pico_data/Raw/051424-0.5x0.5.csv')
+file = pd.read_csv('C:/Users/sesel/OneDrive - Arizona State University/LASI-Alpha/Documents/pico_data/Raw/051524_allnight.csv')
 file = file.to_numpy()
 data_array = []
 for i in range(len(file)):

@@ -41,13 +41,13 @@ j = 0
 
 date = input('What RGA folder?\n')
 
-path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
+path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
 path = os.path.abspath(path)
 folder = os.listdir(path)
 dupes = 0
 for i in folder:
     if date in i:
-        path = r'D:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
+        path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
         path = os.path.abspath(path)
         folder = os.listdir(path)
         print(i)

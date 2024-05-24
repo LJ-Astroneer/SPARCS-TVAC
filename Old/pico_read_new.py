@@ -26,6 +26,7 @@ class Pico(object):
         ser.write(('RANG 2e-9' + '\r\n').encode())
         ser.write(('SENS:CURR:NPLC 6' + '\r\n').encode()) #exp 10 May DCJ
         ser.write(('INIT' + '\r\n').encode())
+        time.sleep(1)
         print("\n\nDettach current source from picoammeter...")
         input("Press [ENTER] to continue......")    
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
@@ -43,8 +44,8 @@ class Pico(object):
         ser.write(('DISP:ENAB OFF' + '\r\n').encode())
         ser.write(('*CLS' + '\r\n').encode())
         ser.write(('FORM:ELEM READ' + '\r\n').encode())
-        ser.write(('TRIG:COUN 5' + '\r\n').encode())  #exp 10 May  DCJ
-        ser.write(('TRAC:POIN 5' + '\r\n').encode())  #exp 10 May DCJ
+        ser.write(('TRIG:COUN 100' + '\r\n').encode())  #exp 10 May  DCJ
+        ser.write(('TRAC:POIN 100' + '\r\n').encode())  #exp 10 May DCJ
         ser.write(('TRAC:CLE'+'\r\n').encode()) #clear buffer
         ser.write(('TRAC:FEED SENS' + '\r\n').encode())
         ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode()) #set storage control to start on next reading
@@ -332,9 +333,9 @@ def graph(x,y,y2,reads):
     graph3.clear()
     graph4.clear()
     graph1.errorbar(x,y,yerr=y2,fmt='o',capsize=3)
-    graph1.set_title('Median w/ Std.dev Error')
+    graph1.set_title('Median w/ Std Error')
     graph2.errorbar(x,y,yerr=y2,fmt='o',capsize=3)
-    graph2.set_title('Median w/ Std.dev Error (log)')
+    graph2.set_title('Median w/ Std Error (log)')
     graph2.set_yscale('log')
     graph3.plot(reads)
     graph3.set_title('Raw data')
@@ -357,29 +358,26 @@ ser = Pico.setup()
 
 
 
-# for i in range(1000):
-i=0
-while True:
+for i in range(1):
     try:
         data,response=Pico.read(ser)
-        reads.extend(data)
+        reads.append(data)
         x.append(i)
         y.append(np.median(data))
-        y2.append(np.std(data))
-        print("Median = {:.2e} Std.Dev = {:.2e}".format(y[-1],y2[-1]))
+        y2.append(np.std(data)/np.sqrt(len(data)))
+        print("Median = {:.2e} Std.Error = {:.2e}".format(y[-1],y2[-1]))
         graph(x,y,y2,reads)
         i+=1
     except(KeyboardInterrupt):
         Pico.close_connection(ser)
 Pico.close_connection(ser)
-# rows = zip(reads)
-# with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\TEMP.csv', 'w',newline='') as f:
-#     writer = csv.writer(f)
-#     for row in rows:
-#         writer.writerow(row)  
+rows = zip(x,reads)
+with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\051524_allnight.csv', 'w',newline='') as f:
+    writer = csv.writer(f)
+    for row in rows:
+        writer.writerow(row)  
 
 #Pico.close_connection(ser)
-
 
 
 #%%

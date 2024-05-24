@@ -35,12 +35,13 @@ class Pico(object):
             timeout=None)
         ser.write(('*RST' + '\r\n').encode())
         ser.write(('SYST:ZCH ON' + '\r\n').encode()) 
-        print("\n\nDettach current source from picoammeter...")
-        input("Press [ENTER] to continue......")    
         ser.write(('DISP:ENAB OFF' + '\r\n').encode())
         ser.write(('RANG 2e-9' + '\r\n').encode())
         ser.write(('SENS:CURR:NPLC 6' + '\r\n').encode()) #exp 10 May DCJ
         ser.write(('INIT' + '\r\n').encode())
+        time.sleep(1)
+        print("\n\nDettach current source from picoammeter...")
+        input("Press [ENTER] to continue......")    
         ser.write(('SYST:ZCOR:ACQ' + '\r\n').encode())
         ser.write(('SYST:ZCOR ON' + '\r\n').encode())
         ser.write(('RANG:AUTO ON' + '\r\n').encode())
@@ -262,118 +263,129 @@ class Mono(object):
         filters = 'Filter used: 1=none 2=160nm lp 3=220nm lp 4=320nm lp'
         reads=[]
         wl = 'Wavelength (nm)'
-        f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Phase2\\'+filename+'.csv', 'a')
-        f.write('\n'+wl+','+raw+','+med+','+std+','+sub+','+filters)
-        while wv < 160:
-            print('Reading at {:.2f}'.format(wv))
-            output = Pico.read(ser)
-            wl = wv
-            reads.append(output)
-            raw=output
-            med = np.median(output)
-            std = np.std(output)/np.sqrt(len(output))
-            sub = med - dark_med
-            filters = filt
-            f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
-            f.flush()
-            
-            x.append(wv)
-            y.append(med)
-            y2.append(std)
-            graph(x,y,y2,reads,dark_med)
-            print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
-            Mono.move(self,step)
-            wv+=step
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-        input('Change Monochromator filter to #2, then press [ENTER]')
-        filt = 2
-        while wv < 280:
-            print('Reading at {:.2f}'.format(wv))
-            output = Pico.read(ser)
-            wl = wv
-            reads.append(output)
-            raw=output
-            med = np.median(output)
-            std = np.std(output)/np.sqrt(len(output))
-            sub = med - dark_med
-            filters = filt
-            f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
-            f.flush()
-            
-            x.append(wv)
-            y.append(med)
-            y2.append(std)
-            graph(x,y,y2,reads,dark_med)
-            plt.pause(0.1)
-            print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
-            Mono.move(self,step)
-            wv+=step
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-        input('Change Monochromator filter to #3, then press [ENTER]')
-        filt = 3 
-        while wv < 400:
-            print('Reading at {:.2f}'.format(wv))
-            output = Pico.read(ser)
-            wl = wv
-            reads.append(output)
-            raw=output
-            med = np.median(output)
-            std = np.std(output)/np.sqrt(len(output))
-            sub = med - dark_med
-            filters = filt
-            f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
-            f.flush()
-            
-            x.append(wv)
-            y.append(med)
-            y2.append(std)
-            graph(x,y,y2,reads,dark_med)
-            plt.pause(0.1)
-            print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
-            Mono.move(self,step)
-            wv+=step
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-        input('Change Monochromator filter to #4, then press [ENTER]')
-        filt = 4
-        while wv <= end:
-            print('Reading at {:.2f}'.format(wv))
-            output = Pico.read(ser)
-            wl = wv
-            reads.append(output)
-            raw=output
-            med = np.median(output)
-            std = np.std(output)/np.sqrt(len(output))
-            sub = med - dark_med
-            filters = filt
-            f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
-            f.flush()
-            
-            x.append(wv)
-            y.append(med)
-            y2.append(std)
-            graph(x,y,y2,reads,dark_med)
-            plt.pause(0.1)
-            print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
-            Mono.move(self,step)
-            wv+=step
-            while Mono.write(self,'^') != '^   0 \r\n':
-                time.sleep(1)
-        plt.figure()
-        plt.scatter(x,y)
-        plt.errorbar(x,y,xerr=step/2,yerr=y2,fmt='o')
-        plt.xlabel('Wavelength (nm)')
-        plt.ylabel('Median Current (Amp)')
-        plt.title('Current versus wavelength with error')
-        f.close()
-        rows = zip(x,reads)
-        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'.csv', 'w',newline='') as f:
-            writer = csv.writer(f)
-            for row in rows:
-                writer.writerow(row) 
-        print('Scan Complete')
+        # f = open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Phase2\\'+filename+'.csv', 'a')
+        # f.write('\n'+wl+','+raw+','+med+','+std+','+sub+','+filters)
+        
+        with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Phase2\\'+filename+'.csv', 'a') as file:
+            csv_writer = csv.writer(file)
+            csv_writer.writerow([wl,raw,med,std,sub,filters])
+            while wv < 160:
+                print('Reading at {:.2f}'.format(wv))
+                output = Pico.read(ser)
+                wl = wv
+                reads.append(output)
+                raw=output
+                med = np.median(output)
+                std = np.std(output)/np.sqrt(len(output))
+                sub = med - dark_med
+                filters = filt
+                # f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
+                # f.flush()
+                csv_writer.writerow([wl,raw,med,std,sub,filters])
+                
+                x.append(wv)
+                y.append(med)
+                y2.append(std)
+                graph(x,y,y2,reads,dark_med)
+                print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
+                Mono.move(self,step)
+                wv+=step
+                while Mono.write(self,'^') != '^   0 \r\n':
+                    time.sleep(1)
+            print('\a')
+            input('Change Monochromator filter to #2, then press [ENTER]')
+            filt = 2
+            while wv < 280:
+                print('Reading at {:.2f}'.format(wv))
+                output = Pico.read(ser)
+                wl = wv
+                reads.append(output)
+                raw=output
+                med = np.median(output)
+                std = np.std(output)/np.sqrt(len(output))
+                sub = med - dark_med
+                filters = filt
+                # f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
+                # f.flush()
+                csv_writer.writerow([wl,raw,med,std,sub,filters])
+                
+                x.append(wv)
+                y.append(med)
+                y2.append(std)
+                graph(x,y,y2,reads,dark_med)
+                plt.pause(0.1)
+                print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
+                Mono.move(self,step)
+                wv+=step
+                while Mono.write(self,'^') != '^   0 \r\n':
+                    time.sleep(1)
+            print('\a')
+            input('Change Monochromator filter to #3, then press [ENTER]')
+            filt = 3 
+            while wv < 400:
+                print('Reading at {:.2f}'.format(wv))
+                output = Pico.read(ser)
+                wl = wv
+                reads.append(output)
+                raw=output
+                med = np.median(output)
+                std = np.std(output)/np.sqrt(len(output))
+                sub = med - dark_med
+                filters = filt
+                # f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
+                # f.flush()
+                csv_writer.writerow([wl,raw,med,std,sub,filters])
+                
+                x.append(wv)
+                y.append(med)
+                y2.append(std)
+                graph(x,y,y2,reads,dark_med)
+                plt.pause(0.1)
+                print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
+                Mono.move(self,step)
+                wv+=step
+                while Mono.write(self,'^') != '^   0 \r\n':
+                    time.sleep(1)
+            print('\a')
+            input('Change Monochromator filter to #4, then press [ENTER]')
+            filt = 4
+            while wv <= end:
+                print('Reading at {:.2f}'.format(wv))
+                output = Pico.read(ser)
+                wl = wv
+                reads.append(output)
+                raw=output
+                med = np.median(output)
+                std = np.std(output)/np.sqrt(len(output))
+                sub = med - dark_med
+                filters = filt
+                # f.write('\n'+str(wl)+','+str(raw)+','+str(med)+','+str(std)+','+str(sub)+','+str(filters))
+                # f.flush()
+                csv_writer.writerow([wl,raw,med,std,sub,filters])
+                
+                x.append(wv)
+                y.append(med)
+                y2.append(std)
+                graph(x,y,y2,reads,dark_med)
+                plt.pause(0.1)
+                print("Median = {:.2e} Std.Error = {:.2e} SNR = {:.2f}".format(y[-1],y2[-1],y[-1]/y2[-1]))
+                Mono.move(self,step)
+                wv+=step
+                while Mono.write(self,'^') != '^   0 \r\n':
+                    time.sleep(1)
+            plt.figure()
+            plt.scatter(x,y)
+            plt.errorbar(x,y,xerr=step/2,yerr=y2,fmt='o')
+            plt.xlabel('Wavelength (nm)')
+            plt.ylabel('Median Current (Amp)')
+            plt.title('Current versus wavelength with error')
+            # f.close()
+            rows = zip(x,reads)
+            with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\Raw\\'+filename+'.csv', 'w',newline='') as f:
+                writer = csv.writer(f)
+                for row in rows:
+                    writer.writerow(row) 
+            print('Scan Complete')
 
 
     '''
@@ -399,10 +411,15 @@ def setup():
 '''
 Section 4: The Execution block
 '''
-ser,m = setup()
-m.full_scan(ser)
-m.close_connection()
-Pico.close_connection(ser)
+
+try:
+    ser,m = setup()
+    m.full_scan(ser)
+    m.close_connection()
+    Pico.close_connection(ser)
+except(KeyboardInterrupt):
+    m.close_connection()
+    Pico.close_connection(ser)
 
 '''
 '''
