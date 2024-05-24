@@ -44,8 +44,8 @@ class Pico(object):
         ser.write(('DISP:ENAB OFF' + '\r\n').encode())
         ser.write(('*CLS' + '\r\n').encode())
         ser.write(('FORM:ELEM READ' + '\r\n').encode())
-        ser.write(('TRIG:COUN 100' + '\r\n').encode())  #exp 10 May  DCJ
-        ser.write(('TRAC:POIN 100' + '\r\n').encode())  #exp 10 May DCJ
+        ser.write(('TRIG:COUN 10' + '\r\n').encode())  #exp 10 May  DCJ
+        ser.write(('TRAC:POIN 10' + '\r\n').encode())  #exp 10 May DCJ
         ser.write(('TRAC:CLE'+'\r\n').encode()) #clear buffer
         ser.write(('TRAC:FEED SENS' + '\r\n').encode())
         ser.write(('TRAC:FEED:CONT NEXT' + '\r\n').encode()) #set storage control to start on next reading
@@ -358,7 +358,7 @@ ser = Pico.setup()
 
 
 
-for i in range(1):
+for i in range(1000):
     try:
         data,response=Pico.read(ser)
         reads.append(data)
@@ -372,10 +372,13 @@ for i in range(1):
         Pico.close_connection(ser)
 Pico.close_connection(ser)
 rows = zip(x,reads)
-with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\noise_hunt\\051524_allnight.csv', 'w',newline='') as f:
-    writer = csv.writer(f)
-    for row in rows:
-        writer.writerow(row)  
+
+save = input("Save File? [y,n] \n")
+if save == 'y':   
+    with open('C:\\Users\\sesel\\OneDrive - Arizona State University\\LASI-Alpha\\Documents\\pico_data\\most_recent.csv', 'w',newline='') as f:
+        writer = csv.writer(f)
+        for row in rows:
+            writer.writerow(row)  
 
 #Pico.close_connection(ser)
 
