@@ -176,8 +176,7 @@ pressure_fil_on = pressure[np.where((filament=='6')|(filament=='3'))]
 Plots the pressure in the chamber over time, makes a line for the switchover 
 point, and inserts a note about the lowest pressure reached and the total time run.
 '''
-pressure_plot_q = input('Pressure Plot? [y/n]\n')
-if pressure_plot_q == 'y':
+def pressure_plot():
     lowest_pressure = np.nanmin(pressure)
     last_time = hour[-1]
     annotation = "Lowest Pressure = {:.2e} Torr\nTotal Time = {:.2f} Hours".format(lowest_pressure,last_time)
@@ -198,9 +197,8 @@ Can use this to select a range later
 
 This literally plots the whole sequence of pressure data but for each amu vs time
 '''
-water_q = input('Water plot? [y/n]\n')
 #water ions cover a wider range than 16,17,18 but those are common markers for it
-if water_q == 'y':
+def water_plot():
     plt.figure()
     mass1 = np.where(amu==16)
     mass2 = np.where(amu==17)
@@ -219,10 +217,9 @@ if water_q == 'y':
     plt.legend()
     plt.show()
 
-air_q = input('Air plot? [y/n]\n')
 #air typically shows up at 14,28 for N and N2; 16,32 for O and O2; also 40 for Argon
 #skipped 16 since it more stronly tracks water
-if air_q == 'y':
+def air_plot():
     plt.figure()
     mass1 = np.where(amu==14)
     mass2 = np.where(amu==28)
@@ -244,9 +241,8 @@ if air_q == 'y':
     plt.legend()
     plt.show()
 
-nitro_q = input('Nitro plot? [y/n]\n')
 #just nitrogen ions, 14 for N and N2++; 28 for N2
-if nitro_q == 'y':
+def nitro_plot():
     mass1 = np.where(amu==14)
     mass2 = np.where(amu==28)
     pres1 = pp[mass1]    
@@ -464,8 +460,7 @@ def health_check():
 '''
 Import temp data
 '''
-temp_q = input('Want to work with temperature data? [y/n]\n')
-if temp_q == 'y':
+def temp_plot():
     temp_file = input('Enter directory for temp file, ensure to delete the ""\n')
     temp_files, ttimes, tzone1, tzone2, tzone3, tzone4, tzone5, tzone6 = read_temps(temp_file)
     
