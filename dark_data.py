@@ -39,7 +39,16 @@ for img in glob.glob(pattern):
     with fits.open(img, mode='readonly') as hdulist:
         header = hdulist[0].header
         data = hdulist[0].data
-     
+    
+    if '_20C'in img:
+        temps.append(20.0)
+    if '_-32C'in img:
+        temps.append(-32.0)        
+    if '_-35C'in img:
+        temps.append(-35.0)    
+    if '_-38C'in img:
+        temps.append(-38.0)    
+        
     #Get the header values you need
     exp = header['EXPTIME']
     exposures.append(exp)
@@ -74,7 +83,10 @@ for img in glob.glob(pattern):
     
     #calculations from the image
     dark_counts = np.mean(image_clip-bias) #average dark count
-    dark_counts_s = dark_counts/exp #average dark / s
+    if exp == 0.0:
+        dark_counts_s = dark_counts/1 #average dark / s
+    else:
+        dark_counts_s = dark_counts/exp
     dark_err = np.std(image_clip-bias)
     darks_counts_s.append(dark_counts_s)
     
@@ -85,9 +97,10 @@ for img in glob.glob(pattern):
     biases_e.append(bias_e)
     read_noises_e.append(read_noise_e)
     
-d = {'Filename': filenames,'Exposure (s)': exposures,'Gain':gains,
-     'NUV Temp PTC (C)':temps_nuv_ptc,'NUV Temp PLP (C)':temps_nuv_plp,
-     'FUV Temp PTC (C)':temps_fuv_ptc,'FUV Temp PLP (C)':temps_fuv_plp,
+d = {'Filename': filenames,'Channel':channels,'Exposure (s)': exposures,
+     'Gain':gains,'Setpoint Temp (°C)':temps,
+     'NUV Temp PTC (°C)':temps_nuv_ptc,'NUV Temp PLP (°C)':temps_nuv_plp,
+     'FUV Temp PTC (°C)':temps_fuv_ptc,'FUV Temp PLP (°C)':temps_fuv_plp,
      'Dark Current (DN/s)':darks_counts_s,'Dark Current (e-/s)':darks_e_s,
      'Bias (DN)':biases,'Bias (e-)':biases_e,'Read Noise (DN)':read_noises,
      'Read Noise (e-)':read_noises_e}
