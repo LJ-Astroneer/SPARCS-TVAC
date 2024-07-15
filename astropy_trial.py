@@ -17,7 +17,7 @@ from scipy import stats
 folder = '20240222\FUV\dark_subtracted'
 BAND = ['FUV']#,'NUV']
 for BAND in BAND:
-    path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
+    path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
     df = pandas.read_csv(path,delimiter=',')
     fwhm = df['Width_T1']
     x = df['X(FITS)_T1']
@@ -30,7 +30,7 @@ for BAND in BAND:
     for i in [index]:
         row = df.iloc[i]    #just collects all the info from that row
         file = row['Label'] #filename
-        path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\phase1_photosandimages\\"+folder+"\\"+file
+        path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\phase1_photosandimages\\"+folder+"\\"+file
         image_file = astropy.io.fits.open(path, cache=True) #open fit
         image_data = fits.getdata(path) #get data
         image_data = image_data[:,:1065] #trim off the overscan
