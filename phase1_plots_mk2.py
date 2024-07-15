@@ -373,7 +373,7 @@ Requirements to Run:
 center    All data before 031824 was with the 2um pinhole
 '''
 folder = input("What folder you want?! (20240222,20240318/final_today,20240321) \n")
-BAND = ['FUV']#,'NUV']
+BAND = ['NUV']#,'NUV']
 for BAND in BAND:
     path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
     df = pandas.read_csv(path,delimiter=',')
@@ -414,7 +414,7 @@ for BAND in BAND:
         y = int(row['Y(FITS)_T1'])
         mask = np.empty((len(image_data), len(image_data[0])), dtype=np.uint16)
         
-        radii = np.arange(5,-1,-1)
+        radii = np.arange(7,-1,-1)
         for i in radii:
             radius_ix = np.arange(x-i,x+i+1,1)
             radius_iy = np.arange(y-i,y+i+1,1)
@@ -463,12 +463,62 @@ for BAND in BAND:
     plt.figure()
     enc_2 = []
     for i in percents_array:
-        enc_2.append(i[1])
+        enc_2.append(i[2])
     plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],c=enc_2)
     plt.colorbar()
     plt.xlim((0,1175))
     plt.ylim((0,1033))
-    plt.title(BAND+' Percent Enclosed energy in 1 pixels by field position')
+    plt.title(BAND+' Percent Enclosed energy in 2 pixels by field position')
+    
+    plt.figure()
+    plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],s=fwhm*100,c=fwhm,norm='linear',cmap='gist_rainbow')
+    plt.colorbar()
+    plt.xlim((0,1175))
+    plt.ylim((0,1033))
+    plt.title(BAND+' FWHM by field position')
+    #%% Going to try to make the above into a surface
+    '''
+    So this does technically work but it is a stretch at best. You only have 80 sample points
+    for a really large array. Honeslty looking back at it now we probably should have
+    taken a more dense sample, but I suppose the point is just to understand the
+    behavior in the FOV of interest.
+    
+    Anyway what this does is makes a grid of points the size of the whole image,
+    then you feed it the values you know at the points you know them. Then griddata
+    interpolates the values to fill in all of the other pixels with whatever method
+    you want.
+    '''
+
+    from scipy.interpolate import griddata
+    grid_x, grid_y = np.mgrid[:1033, :1175]
+    points = (np.array((df['Y(FITS)_T1'],df['X(FITS)_T1']))).transpose() #flipped x and y here because I had to for it to work
+    values = np.array(enc_2)
+    grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
+    grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
+    grid_z2 = griddata(points, values, (grid_x, grid_y), method='cubic')
+    
+    plt.subplot(221)
+    plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],c=enc_2)
+    plt.colorbar()
+    plt.xlim((0,1175))
+    plt.ylim((0,1033))
+    plt.title(BAND+'Data Acquired')
+    plt.subplot(222)
+    plt.imshow(grid_z0,origin='lower')
+    plt.colorbar()
+    plt.title('nearest')
+    plt.subplot(223)
+    plt.imshow(grid_z1,origin='lower')
+    plt.colorbar()
+    plt.title('Linear')
+    plt.subplot(224)
+    plt.imshow(grid_z2,origin='lower')
+    plt.colorbar()
+    plt.title('Cubic')
+    plt.show()
+    
+    
+    #%%
     
     #radial field calculation
     if BAND == 'FUV':

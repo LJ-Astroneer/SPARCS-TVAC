@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-pattern = "D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Darks\*\*\*.fits"
+pattern = "D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Darks\20240624_20C_darks\*\*.fits"
 img_array = []
 paths=[]
 filenames = []
