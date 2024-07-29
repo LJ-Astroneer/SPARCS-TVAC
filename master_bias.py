@@ -66,6 +66,7 @@ for img in glob.glob(bias_folder):
 #Subtract the overscan bias 
 bias_data_osub = []
 overscan_medians = []
+overscan_means = []
 overscan_stds = []
 
 
@@ -82,24 +83,30 @@ for data in bias_data:
     overscan_std = np.std(overscan_clip)
     overscan_median = np.median(overscan_clip)
     overscan_medians.append(overscan_median)
+    overscan_mean = np.mean(overscan_clip)
+    overscan_means.append(overscan_mean)
     overscan_stds.append(overscan_stds)
     
     data_subbed = data - overscan_median
     bias_data_osub.append(data_subbed)
 
-fuv_average_bias = np.mean(bias_data_osub[:100],axis=0)
-nuv_average_bias = np.mean(bias_data_osub[100:],axis=0)
+fuv_median_bias = np.median(bias_data_osub[:100],axis=0)
+nuv_median_bias = np.median(bias_data_osub[100:],axis=0)
 
-fuv_residual_overscan = np.mean(fuv_average_bias[1:1033-8,1075:1075+96])
-nuv_residual_overscan = np.mean(nuv_average_bias[1:1033-8,1075:1075+96])
+fuv_residual_overscan = np.median(fuv_median_bias[1:1033-8,1075:1075+96])
+nuv_residual_overscan = np.median(nuv_median_bias[1:1033-8,1075:1075+96])
 
-fuv_average_bias_residual = fuv_average_bias - fuv_residual_overscan
-nuv_average_bias_residual = nuv_average_bias - nuv_residual_overscan
+fuv_median_bias_residual = fuv_median_bias - fuv_residual_overscan
+nuv_median_bias_residual = nuv_median_bias - nuv_residual_overscan
 
-fuv_residual_overscan = np.mean(fuv_average_bias_residual[1:1033-8,1075:1075+96])
-nuv_residual_overscan = np.mean(nuv_average_bias_residual[1:1033-8,1075:1075+96])
+fuv_residual_overscan = np.median(fuv_median_bias_residual[1:1033-8,1075:1075+96]) # should be 0
+nuv_residual_overscan = np.median(nuv_median_bias_residual[1:1033-8,1075:1075+96]) # should be 0
 
+hdu = fits.PrimaryHDU(fuv_median_bias_residual)
+hdu.writeto(r'D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Cal_products\FUV_masterbias.fits')
 
+hdu = fits.PrimaryHDU(nuv_median_bias_residual)
+hdu.writeto(r'D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Cal_products\NUV_masterbias.fits')
 
 
 
