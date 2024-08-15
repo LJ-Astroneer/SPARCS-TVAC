@@ -37,6 +37,14 @@ def normalize_fits_files(directory):
     
     return normalized_data
 
-# Usage example
-directory = r'C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darksandbiases/20240605_-38C_darks_NUV/output'
-normalized_images = normalize_fits_files(directory)
+for folder in [r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240605_-38C_darks_NUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240531_20C_darks_FUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240531_20C_darks_NUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240603_-32C_darks_FUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240603_-32C_darks_NUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240604_-35C_darks_FUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240604_-35C_darks_NUV",
+r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240605_-38C_darks_FUV"]:
+    # Usage example
+    directory = folder+'//output'
+    normalized_images = normalize_fits_files(directory)

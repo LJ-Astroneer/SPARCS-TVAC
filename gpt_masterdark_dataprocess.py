@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-pattern = "C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darksandbiases\*\output\*dark*"
+pattern = "C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\*\output\*dark*"
 img_array = []
 paths=[]
 filenames = []
@@ -111,5 +111,5 @@ d = {'Folder':paths, 'Filename': filenames,'Channel':channels,'Exposure (s)': ex
       'Rate MAD (DN/s)':mads,'Rate MAD (e-/s)':mads_e}
 df = pd.DataFrame(data=d)
 df = df.sort_values(by=['Folder','Exposure (s)'])
-filename = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darksandbiases\test.csv"
+filename = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\dark.csv"
 df.to_csv(filename)
