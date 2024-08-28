@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-pattern = "C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\*\output\*dark*"
+pattern = "D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\*\output\*dark*"
 img_array = []
 paths=[]
 filenames = []
@@ -34,6 +34,7 @@ medians_s = []
 medians_e_s=[]
 mads = []
 mads_e = []
+totals=[]
 
 for img in glob.glob(pattern):
     #load in the image
@@ -99,7 +100,7 @@ for img in glob.glob(pattern):
     mad_e = mad*gain
     mads.append(mad)
     mads_e.append(mad_e)
-    
+    totals.append(np.sum(image_clip)*gain)
     
     
 d = {'Folder':paths, 'Filename': filenames,'Channel':channels,'Exposure (s)': exposures,
@@ -108,8 +109,8 @@ d = {'Folder':paths, 'Filename': filenames,'Channel':channels,'Exposure (s)': ex
       'Mean DC Rate (DN/s)':darks_counts_s,'Mean DC Rate (e-/s)':darks_e_s,
       'Rate Std.Dev (DN/s)':darks_err,'Rate Std.Dev (e-/s)':darks_err_e,
       'Median DC Rate (DN/s)':medians_s,'Median DC Rate (e-/s)':medians_e_s,
-      'Rate MAD (DN/s)':mads,'Rate MAD (e-/s)':mads_e}
+      'Rate MAD (DN/s)':mads,'Rate MAD (e-/s)':mads_e,'Total Dark (e-)':totals}
 df = pd.DataFrame(data=d)
 df = df.sort_values(by=['Folder','Exposure (s)'])
-filename = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\dark.csv"
+filename = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\dark.csv"
 df.to_csv(filename)
