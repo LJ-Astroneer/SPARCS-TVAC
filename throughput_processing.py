@@ -59,9 +59,9 @@ def process_folder(input_folder, master_bias_file, master_dark_file, output_fold
             print(f"Processed {filename}")
 
 # Example usage
-input_folder = r'C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/Throughput/NUV all samples'
+input_folder = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\NUV"#r'C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/Throughput/NUV all samples'
 master_bias_file = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\20240604_-35C_darks_NUV\output\master_bias.fits"
 master_dark_file = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\20240604_-35C_darks_NUV\output\normalized_1800sec_master_dark.fits"
-output_folder = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\NUV all samples processed"
+output_folder = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\NUV_processed"#r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\NUV all samples processed"
 
 process_folder(input_folder, master_bias_file, master_dark_file, output_folder)

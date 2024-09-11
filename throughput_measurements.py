@@ -13,6 +13,7 @@ import csv
 fuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\fuv_combined_throughput_median.csv")
 nuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\nuv_combined_throughput_median.csv")
 
+
 fuv_err = fuv['Source_Error_T1']*4.2/fuv['EXPTIME']
 nuv_err = nuv['Source_Error_T1']*4.5/nuv['EXPTIME']
 
@@ -27,12 +28,15 @@ fuv_qe = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\L
 nuv_qe = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\nuv_QE.csv")
 
 #QE is n_e/n_photons so n_e/QE = n_photons
+fuv_electrons_err=[]
 fuv_photons=[]
 fuv_photons_err=[]
 fuv_combined_statistics=[]
 for index,row in fuv.iterrows():
     wv = int(row['Wavelength (nm)'])
     electrons = row['(Source-sky)*Gain/EXP']
+    electron_err = (row['Source_Error_T1']*4.2/row['EXPTIME'])
+    fuv_electrons_err.append(electron_err)
     i = fuv_qe['wav[nm]']==int(wv)
     qe = fuv_qe['avg QE'][i].values[0]
     fuv_photons.append(electrons/qe)
@@ -41,14 +45,15 @@ for index,row in fuv.iterrows():
     stats = {
         'Wavelength (nm)': wv,
         'Electrons/s': electrons,
+        'Electron Error':electron_err,
         'QE': qe,
         'Photons/s': electrons/qe,
-        'Error Estimate': (row['Source_Error_T1']*4.2/row['EXPTIME'])/qe,
+        'Photon Error Estimate': (row['Source_Error_T1']*4.2/row['EXPTIME'])/qe,
     }
     fuv_combined_statistics.append(stats)
 output_csv =r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\fuv_calculated_photons.csv"
 with open(output_csv, mode='w', newline='') as csvfile:
-    fieldnames = ['Wavelength (nm)', 'Electrons/s','QE', 'Photons/s','Error Estimate']
+    fieldnames = ['Wavelength (nm)', 'Electrons/s','Electron Error','QE', 'Photons/s','Photon Error Estimate']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     
     writer.writeheader()
@@ -58,28 +63,32 @@ with open(output_csv, mode='w', newline='') as csvfile:
 print(f"Combined statistics saved to {output_csv}")
 
 
-    
+nuv_electrons_err=[]
 nuv_photons=[]
 nuv_photons_err=[]
 nuv_combined_statistics=[]
 for index,row in nuv.iterrows():
     wv = int(row['Wavelength (nm)'])
     electrons = row['(Source-sky)*Gain/EXP']
+    electron_err = (row['Source_Error_T1']*4.5/row['EXPTIME'])
+    nuv_electrons_err.append(electron_err)
     i = nuv_qe['wavelength [nm]']==int(wv)
     qe = nuv_qe['Avg QE'][i].values[0]
     nuv_photons.append(electrons/qe)
     nuv_photons_err.append((row['Source_Error_T1']*4.5/row['EXPTIME'])/qe)
+    # Store the results
     stats = {
         'Wavelength (nm)': wv,
         'Electrons/s': electrons,
+        'Electron Error':electron_err,
         'QE': qe,
         'Photons/s': electrons/qe,
-        'Error Estimate': (row['Source_Error_T1']*4.5/row['EXPTIME'])/qe,
+        'Photon Error Estimate': (row['Source_Error_T1']*4.2/row['EXPTIME'])/qe,
     }
     nuv_combined_statistics.append(stats)
 output_csv =r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\nuv_calculated_photons.csv"
 with open(output_csv, mode='w', newline='') as csvfile:
-    fieldnames = ['Wavelength (nm)', 'Electrons/s','QE', 'Photons/s','Error Estimate']
+    fieldnames = ['Wavelength (nm)', 'Electrons/s','Electron Error','QE', 'Photons/s','Photon Error Estimate']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     
     writer.writeheader()

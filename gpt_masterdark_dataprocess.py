@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-pattern = "D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\*\output\*dark*"
+pattern = "C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\*\output\*dark*"
 img_array = []
 paths=[]
 filenames = []
@@ -64,11 +64,12 @@ for img in glob.glob(pattern):
     
     #seperate out the overscan and the image
     overscan_reg = data[1:1033-8,1075:1075+96]
-    image_reg = data[1:1033-8,10:10+1056]
+    image_reg = data[100:920,100:1020]#[100:1033-8,10:10+1056]
+    # image_reg = data[500:510,500:510]
     
     #sigma clip both regions to remove outliers
     overscan_clip,over_high,over_low = stats.sigmaclip(overscan_reg,5,5)
-    image_clip,image_high,image_low = stats.sigmaclip(image_reg,5,5)
+    image_clip,image_high,image_low = stats.sigmaclip(image_reg,3,3)
     
     #Calculations form the overscan
 
@@ -112,5 +113,5 @@ d = {'Folder':paths, 'Filename': filenames,'Channel':channels,'Exposure (s)': ex
       'Rate MAD (DN/s)':mads,'Rate MAD (e-/s)':mads_e,'Total Dark (e-)':totals}
 df = pd.DataFrame(data=d)
 df = df.sort_values(by=['Folder','Exposure (s)'])
-filename = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\dark.csv"
+filename = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\gpt_darkandbias_overscan2.1\dark_smaller.csv"
 df.to_csv(filename)

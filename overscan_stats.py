@@ -74,7 +74,10 @@ r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/D
 r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240604_-35C_darks_FUV/0sec",
 r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240604_-35C_darks_NUV/0sec",
 r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/20240605_-38C_darks_FUV/0sec"]  # Replace with paths to your folders
+folders = []
+
 overscan_region = (slice(8, 1030), slice(1076,1170))  # Adjust if your overscan region is different
+
 output_csv = r"C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/Data/gpt_darkandbias_overscan2.1/combined_overscan_statistics.csv"  # Specify your desired output file name
 
 # Process the folders and save the combined results

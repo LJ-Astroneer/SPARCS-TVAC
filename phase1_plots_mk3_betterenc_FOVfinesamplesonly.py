@@ -512,24 +512,37 @@ for BAND in BANDS:
     plt.xlabel('X Pixels')
     plt.ylabel('Y Pixels')
     
+    plt.figure()
+    plt.scatter(xs,ys,c=(fwhm_meds*13*1e-3)/2.355,s=300,norm='linear',cmap='viridis_r')
+    plt.colorbar(label='Millimeters RMS')
+    plt.xlim((0,1175))
+    plt.ylim((0,1033))
+    plt.title(BAND+' Median RMS by field position')
+    plt.xlabel('X Pixels')
+    plt.ylabel('Y Pixels')
+    
     rs_arcmin = rs*4.9/60
     plt.figure(figsize=(12,6))
     plt.subplot(121)
-    plt.plot(rs_arcmin,fwhm_meds,'o')
     plt.xlabel('Radius from image center (arcmin)')
     plt.ylabel('FWHM (pix)')
-    plt.title(BAND+' Median FWHM vs Field Position')
+    plt.title(BAND+' Mean FWHM vs Field Position')
     plt.axvline(20,color='r',label='SPARCS FOV')
-    plt.errorbar(rs_arcmin,fwhm_meds,yerr=fwhm_mads,capsize=3,fmt='none')
+    # plt.errorbar(rs_arcmin,fwhm_meds,yerr=fwhm_mads,capsize=3,fmt='o')
+    plt.errorbar(rs_arcmin,fwhm_means,yerr=fwhm_stds,capsize=3,fmt='o')
+    plt.xlim((0,50))
+    plt.ylim((2,7))
     plt.legend()
     
     plt.subplot(122)
-    plt.plot(rs_arcmin,enc_meds,'o')
     plt.xlabel('Radius from image center (arcmin)')
     plt.ylabel('Enclosed Energy (%)')
-    plt.title(BAND+' Median Enclosed energy % in 2 pixels vs Field Position')
+    plt.title(BAND+' Mean Enclosed energy % in 2 pixels vs Field Position')
     plt.axvline(20,color='r',label='SPARCS FOV')
-    plt.errorbar(rs_arcmin,enc_meds,yerr=enc_mads,capsize=3,fmt='none')
+    # plt.errorbar(rs_arcmin,enc_meds,yerr=enc_mads,capsize=3,fmt='o')
+    plt.errorbar(rs_arcmin,enc_means,yerr=enc_stds,capsize=3,fmt='o')
+    plt.xlim((0,50))
+    plt.ylim((20,75))
     plt.legend()
     
     fov = np.where(rs_arcmin <= 20)[0]
@@ -590,6 +603,12 @@ for BAND in BANDS:
     plt.suptitle(BAND+' FWHM median mesh interpolation')
     plt.show()
     
+    plt.figure()
+    plt.title(BAND+' FWHM median cubic mesh interpolation')
+    plt.imshow(grid_z2,origin='lower',cmap='viridis_r')
+    plt.colorbar()
+    
+    
     values = np.array(enc_meds)
     grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
     grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
@@ -622,46 +641,46 @@ for BAND in BANDS:
     Function again to plot the encircled energy distribution mean/medians within the 40' FOV and plotting it compared to the Hexagon data that frankly I do not think is a very good comparison anyway.
     '''
     
-    plt.figure() 
-    for i in np.arange(len(rs_arcmin)):
-        if rs_arcmin[i] <= 20:
-            plt.plot(rad*13,ratios_means[int(i)],label='Radius = '+'{:.1f}'.format(rs_arcmin[i])+"'",marker='x')
+    # plt.figure() 
+    # for i in np.arange(len(rs_arcmin)):
+    #     if rs_arcmin[i] <= 20:
+    #         plt.plot(rad*13,ratios_means[int(i)],label='Radius = '+'{:.1f}'.format(rs_arcmin[i])+"'",marker='x')
+    # # plt.legend()
+    # # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
+    # plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
+    # plt.xlabel('Radius (um)')
+    # plt.ylabel('Percent enclosed energy (%)')
+    # plt.xlim((0,130))
+    
+    # # meds.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the meds for later analysis
+    # #import the actual hexagon data
+    # def Hex_import():
+    #     path = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\Hexagon_OpticalPerf_data.csv"
+    #     df = pandas.read_csv(path)
+    #     hex_label = []
+    #     hex_rad = []
+    #     hex_frac = []
+    #     for i in np.arange(len(df)):
+    #         row = df.loc[i]
+    #         band = row['Band']
+    #         loc = row['Location']
+    #         typ = row['Type']
+    #         if band == BAND:
+    #             if 'Hexagon '+band+' '+loc not in hex_label:    
+    #                 hex_label.append('Hexagon '+band+' '+loc)
+    #             if typ == 'Radius':
+    #                 rad = row[3:]
+    #                 hex_rad.append(rad)
+    #             else:
+    #                 frac = row[3:]
+    #                 hex_frac.append(frac)
+    #     return(hex_label,hex_rad,hex_frac)
+    # hex_label,hex_rad,hex_frac = Hex_import()
+    
+    # for i in np.arange(len(hex_label)):
+    #     plt.scatter(hex_rad[i],hex_frac[i],label=hex_label[i])
     # plt.legend()
-    # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
-    plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
-    plt.xlabel('Radius (um)')
-    plt.ylabel('Percent enclosed energy (%)')
-    plt.xlim((0,130))
     
-    # meds.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the meds for later analysis
-    #import the actual hexagon data
-    def Hex_import():
-        path = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\Hexagon_OpticalPerf_data.csv"
-        df = pandas.read_csv(path)
-        hex_label = []
-        hex_rad = []
-        hex_frac = []
-        for i in np.arange(len(df)):
-            row = df.loc[i]
-            band = row['Band']
-            loc = row['Location']
-            typ = row['Type']
-            if band == BAND:
-                if 'Hexagon '+band+' '+loc not in hex_label:    
-                    hex_label.append('Hexagon '+band+' '+loc)
-                if typ == 'Radius':
-                    rad = row[3:]
-                    hex_rad.append(rad)
-                else:
-                    frac = row[3:]
-                    hex_frac.append(frac)
-        return(hex_label,hex_rad,hex_frac)
-    hex_label,hex_rad,hex_frac = Hex_import()
-    
-    for i in np.arange(len(hex_label)):
-        plt.scatter(hex_rad[i],hex_frac[i],label=hex_label[i])
-    plt.legend()
-    
-    print(np.min(fwhm))
+    # print(np.min(fwhm))
  
  

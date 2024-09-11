@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-img = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\reduced\nuv_flat_median_biassub_osub.fits"
+img = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_FUV_processed.fits"
 with fits.open(img, mode='readonly') as hdulist:
     header = hdulist[0].header
     data = hdulist[0].data
@@ -56,17 +56,24 @@ y, x = np.mgrid[:933, :800] #trimmed x and y
 # data = z - p(x, y)
 #%%
 from scipy.ndimage import gaussian_filter
+from astropy.visualization import ZScaleInterval
 
-filtered = gaussian_filter(data,sigma=1,radius=10)
-plt.imshow(data/filtered)
+z = ZScaleInterval()
+filtered = gaussian_filter(data,sigma=1,radius=50)
+z1,z2 = z.get_limits((data/filtered)[100:920,100:920])
+plt.figure()
+plt.imshow((data/filtered),vmin=z1, vmax=z2)
 
 
-#%%
+z1,z2 = z.get_limits((filtered)[100:920,100:920])
+plt.figure()
+plt.imshow((filtered),vmin=z1, vmax=z2)
+
+
+#%%[100:920,100:920]
 
 hdu = fits.PrimaryHDU(data=data/filtered)
-hdu.writeto(r'C:\Users\logan\Desktop\residualNUV.fits')
-
-
+hdu.writeto(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_FUV_processed_residual.fits")
 
 
 
