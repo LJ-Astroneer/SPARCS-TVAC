@@ -274,9 +274,9 @@ for BAND in BANDS:
     rad = radii
     #radial field calculation
     if BAND == 'FUV':
-        FOV_center = 500,500
+        FOV_center = 450,500
     elif BAND == 'NUV':
-        FOV_center = 500,500
+        FOV_center = 400,500
     x = df['X(FITS)_T1']
     y = df['Y(FITS)_T1']
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
@@ -327,7 +327,7 @@ for BAND in BANDS:
     '''
     making plots of the encircled energy by radius and FWHM by radius, a scatter plot of every measurement taken
     '''
-    FOV_center = 500,500
+    # FOV_center = 500,500
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
     r_arcmin = r*4.9/60
     enc_2 = np.asarray(enc_2)

@@ -13,7 +13,7 @@ import os
 from scipy import stats
 import pandas as pd
 
-img = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_FUV_processed.fits"
+img = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_NUV_processed.fits"
 with fits.open(img, mode='readonly') as hdulist:
     header = hdulist[0].header
     data = hdulist[0].data
@@ -67,13 +67,13 @@ plt.imshow((data/filtered),vmin=z1, vmax=z2)
 
 z1,z2 = z.get_limits((filtered)[100:920,100:920])
 plt.figure()
-plt.imshow((filtered),vmin=z1, vmax=z2)
+plt.imshow((filtered[1:1033-8,10:10+1056]),vmin=z1, vmax=z2)
 
 
 #%%[100:920,100:920]
 
-hdu = fits.PrimaryHDU(data=data/filtered)
-hdu.writeto(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_FUV_processed_residual.fits")
+hdu = fits.PrimaryHDU(data=(data/filtered)[1:1033-8,10:10+1056])
+hdu.writeto(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Flats\20240807_Flats\MED_NUV_residual_trim2.fits")
 
 
 

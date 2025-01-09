@@ -11,10 +11,12 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from scipy import interpolate
 import math
+from photutils.aperture import CircularAnnulus
+from photutils.aperture import aperture_photometry
 
 import imageio as iio
 
-img = iio.imread('D:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase2/BeamCalibrationImages/PXL_20240521_211858000.RAW-01.MP.COVER.jpg')
+img = iio.imread('C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\BeamCalibrationImages\PXL_20240521_211858000.RAW-01.MP.COVER.jpg')
 img_g = img[:,:,1] #this is the green channel
 img_crop = img_g[1800:2700,1300:2200]
 
@@ -47,6 +49,9 @@ plt.imshow(temp3) #remove pixels outside the beam
 temp4 = np.copy(temp3)
 temp4[:,796:] = 0
 plt.imshow(temp4) #removed the remaining pixels outside
+plt.title('Optics Relay beam profile')
+plt.xlabel('#X pixels')
+plt.ylabel('#Y pixels')
 
 #%%
 count = np.sum(temp4)
@@ -55,8 +60,13 @@ print('Number of pixels in beam = {:.0f}'.format(count))
 area = count*0.114**2 #mm^2/pixel
 print('Estimated beam area = {:.2f} mm^2'.format(area))
 
+#%%
+test = CircularAnnulus([450,435], 207, 413)
+test.plot(color='red', lw=2,label='Full Beam annulus')
+test2 = CircularAnnulus([450,435], 140, 391)
+test2.plot(color='red', lw=2,label='SPARCS Aperture')
 
-
-
+phot_table=aperture_photometry(temp4,test2)
+z=phot_table['aperture_sum'][0]
 
 

@@ -41,13 +41,13 @@ j = 0
 
 date = input('What RGA folder?\n')
 
-path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
+path = r'C:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data'
 path = os.path.abspath(path)
 folder = os.listdir(path)
 dupes = 0
 for i in folder:
     if date in i:
-        path = r'C:\Users\sesel\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
+        path = r'C:\OneDrive - Arizona State University\LASI-Alpha\Documents\RGA_Data\{}'.format(i)
         path = os.path.abspath(path)
         folder = os.listdir(path)
         print(i)
@@ -298,7 +298,7 @@ if new_q == 'y':
     plt.legend()
     plt.axvline(x=80,c='c')
     plt.axvline(x=150,c='m')
-    plt.grid(True,'both','both',linestyle='--')
+    plt.grid(True,'major','both',linestyle='--',alpha=0.3)
     plt.show()
 
 def custom_fullplot():
@@ -324,7 +324,7 @@ def custom_fullplot():
     plt.title(str(first_t)+' RGA scan')
     plt.xlabel('AMU')
     plt.ylabel('Partial Pressure (log Torr)')
-    plt.grid(True,'both','both',linestyle='--')
+    plt.grid(True,'major','both',linestyle='--',alpha=0.3)
     plt.legend()
     plt.show()
     
@@ -383,8 +383,8 @@ def comp_2():
     tbtw = int(hour[second]-hour[first])
     plt.figure()
     m=MarkerStyle('o','none')
-    plt.plot(amu[first],pp[first],label='{num}'.format(num=first_t),c='r')
-    plt.plot(amu[second],pp[second],label='{num}'.format(num=second_t),c='k')
+    plt.plot(amu[first],pp[first],label='{num}'.format(num=first_t),c='k')
+    plt.plot(amu[second],pp[second],label='{num}'.format(num=second_t),c='r')
     line = np.arange(0,320,10)
     req = plt.plot(line[8:],np.ones(len(line[8:]))*3e-11,label='CCP metric  >80 amu <3E-11 Torr',c='c')
     req = plt.plot(line[15:],np.ones(len(line[15:]))*3e-12,label='CCP metric  >150 amu <3E-12 Torr',c='m')
@@ -400,10 +400,10 @@ def comp_2():
     if ans == 'y':
         f = input('Input 1st label\n')
         s = input('Input 2nd label\n')
-        plt.legend([f,s])
+        plt.legend([f,s,'CCP metric  >80 amu <3E-11 Torr','CCP metric  >150 amu <3E-12 Torr'])
     else:
         plt.legend()
-    plt.grid(True,'both','both',linestyle='--')
+    plt.grid(True,'both','both',linestyle='--',alpha=0.3)
     plt.show()
 
 def comp_3():

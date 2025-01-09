@@ -17,6 +17,7 @@ from scipy import stats
 from photutils.aperture import CircularAperture, aperture_photometry, CircularAnnulus
 from photutils.detection import find_peaks
 from scipy.ndimage import gaussian_filter
+from photutils.profiles import CurveOfGrowth
 
 def gaussian_2d(coords, x0, y0, sigma_x, sigma_y, amplitude, theta, offset):
     x, y = coords
@@ -82,16 +83,19 @@ def calculate_encircled_energy(image_data, x_star, y_star, max_radius=10):
     y, x = np.indices(image_data.shape)
     radii = np.sqrt((x - x_star)**2 + (y - y_star)**2)
     
-    encircled_energy = []
-    for r in range(1, max_radius + 1):
-        aperture = CircularAperture((x_star, y_star), r)
-        phot_table = aperture_photometry(image_data, aperture)
-        encircled_energy.append(phot_table['aperture_sum'][0])
+    # encircled_energy = []
+    # for r in range(1, max_radius + 1):
+    #     aperture = CircularAperture((x_star, y_star), r)
+    #     phot_table = aperture_photometry(image_data, aperture)
+    #     encircled_energy.append(phot_table['aperture_sum'][0])
     
-    encircled_energy = np.array(encircled_energy)
-    encircled_energy /= encircled_energy[-1]  # Normalize by total flux
-    
-    return np.arange(1, max_radius + 1), encircled_energy
+    # encircled_energy = np.array(encircled_energy)
+    # encircled_energy /= encircled_energy[-1]  # Normalize by total flux
+    radii = np.arange(0.01, 10,0.01)
+    cog = CurveOfGrowth(image_data, (x_star,y_star), radii, mask=None)
+    cog.normalize(method='max')
+    ee_vals = cog.calc_ee_at_radius(radii) 
+    return radii, ee_vals
 
 def plot_encircled_energy(radii, encircled_energy):
     plt.figure(figsize=(8, 6))
@@ -132,8 +136,8 @@ BAND = 'NUV'#,'NUV']
 if BAND == 'FUV':
     folder = ['pre_focus','minus_0.01','plus_0.01','plus_0.015','plus_0.025','final']
 else:
-    folder = ['pre_focus','minus_0.01','plus_0.01','plus_0.015','plus_0.025','final','final2']
-    
+    # folder = ['pre_focus','minus_0.01','plus_0.01','plus_0.015','plus_0.025','final','final2']
+    folder = ['pre_focus','minus_0.01','plus_0.01','plus_0.015','plus_0.025','final2']
 for folder in folder:
     # path = r"D:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
     path = "C:/OneDrive - Arizona State University/SPARCS Documents/Logan Working/Phase1/phase1_photosandimages/20240319/"+folder+"/"+BAND+"_photometry_Measurements_adaptive.csv"
@@ -256,45 +260,66 @@ def plot_fit(x_data, y_data, y_fit):
     plt.grid(True)
     plt.show()
 
+CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                  '#f781bf', '#a65628', '#984ea3',
+                  '#999999', '#e41a1c', '#dede00']
 
 if BAND == 'FUV':
     plt.figure()
     labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','Final, +0.01"']
+    m=[':o',':^',':p',':x',':d',':s']
+    mi=0
     for i in np.arange(len(enc_means)):
-        plt.errorbar(rad,enc_means[i]*100,yerr=enc_stds[i]*100,fmt=':o',capsize=3,label=labels[i])
+        plt.errorbar(rad,enc_means[i]*100,yerr=enc_stds[i]*100,fmt=m[mi],color=CB_color_cycle[mi],capsize=3,label=labels[i],markevery=50,errorevery=50)
+        mi+=1
     plt.title('FUV Encircled energy with Focusing')
     plt.xlabel('Radius (pixels)')
     plt.ylabel('Encircled energy (%)')
     plt.xlim(0,5)
+    plt.ylim(0,105)
+    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
     plt.legend()
     
     plt.figure()
     labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','Final, +0.01"']
     x_temp = [0.0,-0.01,0.01,0.015,0.025,0.01]
+    mi=0
     for i in np.arange(len(x_temp)):
-        plt.errorbar(x_temp[i],fwhm_means[i],yerr=fwhm_stds[i],fmt='o',capsize=3,label=labels[i])
+        plt.errorbar(x_temp[i],fwhm_means[i],yerr=fwhm_stds[i],fmt=m[mi],color=CB_color_cycle[mi],capsize=3,label=labels[i])
+        mi+=1
     plt.title('FUV FWHM with Focusing')
     plt.ylabel('FWHM (pixels)')
+    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
     plt.legend()
     
 
 if BAND =='NUV':
     plt.figure()
-    labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','0"','Final, 0"']
+    # labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','0"','Final, 0"']
+    labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','Final, 0"']
+    m=[':o',':^',':p',':x',':d',':s']
+    mi=0
     for i in np.arange(len(enc_means)):
-        plt.errorbar(rad,enc_means[i]*100,yerr=enc_stds[i]*100,fmt=':o',capsize=3,label=labels[i])
+        plt.errorbar(rad,enc_means[i]*100,yerr=enc_stds[i]*100,fmt=m[mi],color=CB_color_cycle[mi],capsize=3,label=labels[i],markevery=50,errorevery=50)
+        mi+=1
     plt.title('NUV Encircled energy with Focusing')
     plt.xlabel('Radius (pixels)')
     plt.ylabel('Encircled energy (%)')
     plt.xlim(0,5)
-    plt.legend()
+    plt.ylim(0,105)
+    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
+    plt.legend(loc='lower right')
     
     plt.figure()
-    labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','0"','Final, 0"']
-    x_temp = [0.0,-0.01,0.01,0.015,0.025,0.0,0.0]
+    # labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','0"','Final, 0"']
+    labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','Final, 0"']
+    x_temp = [0.0,-0.01,0.01,0.015,0.025,0.0]
+    mi=0
     for i in np.arange(len(x_temp)):
-        plt.errorbar(x_temp[i],fwhm_means[i],yerr=fwhm_stds[i],fmt='o',capsize=3,label=labels[i])
+        plt.errorbar(x_temp[i],fwhm_means[i],yerr=fwhm_stds[i],fmt=m[mi],color=CB_color_cycle[mi],capsize=3,label=labels[i])
+        mi+=1
     plt.title('NUV FWHM with Focusing')
+    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
     plt.ylabel('FWHM (pixels)')
     # plt.legend()
     
@@ -319,11 +344,15 @@ plt.plot(x,y,'k:', label=f'Fitted Parabola R²: {r_squared:.3f}')
 plt.legend()
 
 
-
-    
-    
-    
-    
+#%%
+from scipy.special import erf
+fwhm=np.arange(0,3,0.1)
+flux_fraction = erf(np.sqrt(np.log(2))/fwhm)**2*100
+plt.figure()
+plt.plot(fwhm,flux_fraction)   
+plt.title('Flux fraction in 1 pixel for Gaussian PSF') 
+plt.xlabel('FWHM (pixels)')
+plt.ylabel('Flux Fraction (%)')
     
     
     

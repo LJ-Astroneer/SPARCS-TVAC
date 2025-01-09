@@ -13,11 +13,13 @@ from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 
-fuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\fuv_calculated_photons.csv")
-nuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\nuv_calculated_photons.csv")
-photo = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data.csv")
-fuv_qe = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\SPARCS_FUV_QE_2023.08.31.csv")
-nuv_qe = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\SPARCS_NUV_QE_2023.10.24_ALL.csv")
+fuv = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\fuv_calculated_photons.csv")
+nuv = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\nuv_calculated_photons.csv")
+photo = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data_newerr.csv")
+fuv_qe = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\SPARCS_FUV_QE_2023.08.31.csv")
+fuv_qe_david = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\fuv_QE.csv")
+nuv_qe = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\SPARCS_NUV_QE_2023.10.24_ALL.csv")
+nuv_qe_david = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\QE from JPL\nuv_QE.csv")
 
 #%% Make plots of the signal photons divided by the incident photons
 fuv_ratios = []
@@ -255,17 +257,19 @@ plt.subplot(211)
 plt.errorbar(fuv_wavelengths,fuv_ratios,fuv_ratio_errors,8/2.355,fmt=':o',capsize=3,label='FUV')
 plt.errorbar(nuv_wavelengths,nuv_ratios,nuv_ratio_errors,8/2.355,fmt=':^',capsize=3,label='NUV')
 plt.xlabel('Wavelength (nm)')
-plt.ylabel('SPARCS System Responsivity (e-/photon)')
-plt.title('SPARCS Responsivity (linear) vs Wavelength')
+plt.ylabel('SPARCS System Response (e-/photon)')
+plt.title('SPARCS Response (linear) vs Wavelength')
 plt.legend()
+plt.grid()
 plt.subplot(212)
 plt.errorbar(fuv_wavelengths,fuv_ratios,fuv_ratio_errors,8/2.355,fmt=':o',capsize=3,label='FUV')
 plt.errorbar(nuv_wavelengths,nuv_ratios,nuv_ratio_errors,8/2.355,fmt=':^',capsize=3,label='NUV')
 plt.yscale('log')
 plt.xlabel('Wavelength (nm)')
-plt.ylabel('SPARCS System Responsivity (e-/photon)')
-plt.title('SPARCS Responsivity (log) vs Wavelength')
+plt.ylabel('SPARCS System Response (e-/photon)')
+plt.title('SPARCS Response (log) vs Wavelength')
 plt.legend()
+plt.grid()
 
 
 
@@ -293,6 +297,7 @@ plt.figure()
 plt.scatter(x, y, label='FUV Data')
 plt.plot(x, gaussian(x, *popt), label='FUV Fitted Gaussian', color='red')
 plt.legend()
+plt.grid()
 plt.show()
 
 # Initial guess for the parameters
@@ -318,7 +323,47 @@ print(f"NUV Median x value of the Gaussian: {median_x:.2f}  +/- {8/2.355:.2f}")
 plt.scatter(x, y, label='NUV Data')
 plt.plot(x, gaussian(x, *popt), label='NUV Fitted Gaussian')
 plt.legend()
+plt.grid()
 plt.show()
+
+#%%David throughput data
+fqe = fuv_qe_david['ave QE [%]']
+fwv = fuv_qe_david['wav[nm]']
+
+nqe = nuv_qe_david['ave QE [%]']
+nwv = nuv_qe_david['wav [nm]']
+
+ftp=[]
+i=0
+for wv in fuv_wavelengths:
+    index = np.where(fwv == wv)[0][0]
+    ftp.append(fuv_ratios[i]/(fqe[index]/100))
+    i+=1
+ntp=[]
+i=0
+for wv in nuv_wavelengths:
+    index = np.where(nwv == wv)[0][0]   
+    ntp.append(nuv_ratios[i]/(nqe[index]/100))
+    i+=1
+
+
+plt.figure(figsize=(12,10))
+plt.subplot(211)
+# plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3)
+plt.errorbar(fuv_wavelengths,ftp,xerr=8/2.355,fmt=':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,xerr=8/2.355,fmt=':o',capsize=3)
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Throughput (%)')
+plt.title('Throughput vs Wavelength')
+plt.yscale('log')
+plt.subplot(212)
+# plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3)
+plt.errorbar(fuv_wavelengths,ftp,xerr=8/2.355,fmt=':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,xerr=8/2.355,fmt=':o',capsize=3)
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Throughput (%)')
+plt.title('Throughput vs Wavelength')
+plt.suptitle("David's Interpolation")
 
 #%% TRying the throguhput again with my own interpolation
 # Interpolate the QE data myself instead of using David's stuff
@@ -352,18 +397,24 @@ ntp_err = ntp*np.sqrt((np.array(nuv_ratio_errors)/np.array(nuv_ratios))**2+(nerr
 
 plt.figure(figsize=(12,10))
 plt.subplot(211)
-plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3)
-plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3)
+plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3,label='FUV')
+# plt.errorbar(fuv_wavelengths,ftp,abs(ftp_err),8/2.355,':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3,label='NUV')
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Throughput (%)')
 plt.title('Throughput vs Wavelength')
 plt.yscale('log')
+plt.grid()
+plt.legend()
 plt.subplot(212)
-plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3)
-plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3)
+plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3,label='FUV')
+# plt.errorbar(fuv_wavelengths,ftp,abs(ftp_err),8/2.355,':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3,label='NUV')
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Throughput (%)')
 plt.title('Throughput vs Wavelength')
+plt.grid()
+plt.legend()
 #%%F it lets calculate the effective aperture too
 
 
@@ -372,7 +423,7 @@ feff_err=[]
 
 for index,row in photo.iterrows():
     wv = round(row['Wavelength [nm]'])
-    photon_flux = row['Photon Flux [Photons/s m^2]']*3.45e-3
+    photon_flux = row['Photon Flux [Photons/s m^2]']*3.45e-3 #adjust for smaller pinhole
     photon_flux_err = photon_flux*np.sqrt((row['Flux Error Estimate']/row['Photon Flux [Photons/s m^2]'])**2+(3.31E-04/3.45e-3)**2)
     i = fuv['Wavelength (nm)']==int(wv)
     if len(fuv['Electrons/s'][i]) > 0:
@@ -406,8 +457,17 @@ for index,row in photo.iterrows():
         
 nefferr = 1/len(neff_err)*np.sqrt(np.sum(np.array(neff_err)**2)) #standard error
 
-
-
+#%%effective aperture part 2
+plt.figure()
+area = 55.3 #cm^2 for an annulus 9cm diameter with a 3.25 cm secondary
+fyerr = (ftp[:21]*area/100) * np.sqrt((ftp_err[:21]/ftp[:21])**2+(1/area)**2)
+nyerr = (ntp*area/100) * np.sqrt((ntp_err/ntp)**2+(1/area)**2)
+plt.errorbar(fuv_wavelengths[:21],ftp[:21]*area/100,fyerr,fmt=':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp*area/100,nyerr,fmt=':o',capsize=3)
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Effective Area ($cm^{2}$)')
+plt.title('Effective Area vs Wavelength\n Physical Apterure is 55.3 $cm^{2}$')
+plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
 
 
 

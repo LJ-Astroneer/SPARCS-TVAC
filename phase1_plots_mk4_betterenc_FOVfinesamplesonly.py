@@ -30,7 +30,6 @@ from photutils.aperture import CircularAperture, aperture_photometry, CircularAn
 from photutils.detection import find_peaks
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import griddata
-from photutils.centroids import centroid_quadratic
 
 '''
 fitting a 2D gaussian function to feed into the curve_fit program that will be used to measure the FWHM
@@ -68,17 +67,15 @@ def measure_fwhm(image_data, x_star, y_star, box_size=20):
     
     # Fit a 2D Gaussian to the star's brightness profile
     try:
-        popt, pcov = curve_fit(gaussian_2d, coords, sub_image_flat, p0=initial_guess)
+        popt, _ = curve_fit(gaussian_2d, coords, sub_image_flat, p0=initial_guess)
         x0, y0, sigma_x, sigma_y, amplitude, theta, offset = popt
         
         # FWHM is related to the standard deviation by FWHM = 2.3548 * sigma
         fwhm_x = 2.3548 * sigma_x
         fwhm_y = 2.3548 * sigma_y
-        # fwhm = np.sqrt(fwhm_x**2 + fwhm_y**2) / np.sqrt(2)  # Average FWHM
-        fwhm=(fwhm_x+fwhm_y)/2
-        perr = np.sqrt(np.diag(pcov))
-        fwhm_err = np.sqrt(perr[2]**2+perr[3]**2)
-        return fwhm,x0,y0,fwhm_err
+        fwhm = np.sqrt(fwhm_x**2 + fwhm_y**2) / np.sqrt(2)  # Average FWHM
+        
+        return fwhm, x0, y0
     except RuntimeError:
         print("Fitting failed, could not determine FWHM.")
         return None
@@ -111,16 +108,17 @@ def calculate_encircled_energy(image_data, x_star, y_star, max_radius=10):
     radii = np.sqrt((x - x_star)**2 + (y - y_star)**2)
     
     encircled_energy = []
-    # for r in range(1, max_radius + 1):
-    for r in np.arange(1, max_radius + 1,0.1):
+    for r in range(1, max_radius + 1):
         aperture = CircularAperture((x_star, y_star), r)
         phot_table = aperture_photometry(image_data, aperture)
         encircled_energy.append(phot_table['aperture_sum'][0])
     
     encircled_energy = np.array(encircled_energy)
+    total = np.array(encircled_energy)
+    big_total = np.sum(encircled_energy[-1])
     encircled_energy /= encircled_energy[-1]  # Normalize by total flux
     
-    return np.arange(1, max_radius + 1,0.1), encircled_energy
+    return np.arange(1, max_radius + 1), encircled_energy, total,big_total
 
 def plot_encircled_energy(radii, encircled_energy):
     plt.figure(figsize=(8, 6))
@@ -133,7 +131,7 @@ def plot_encircled_energy(radii, encircled_energy):
 #%% Make it all happen in 1 click
 
 means = []
-BANDS = ['FUV','NUV']
+BANDS = ['FUV']#['FUV','NUV']
 for BAND in BANDS:
     folder = '20240322/'+BAND+'_FOV_fine'
     path = r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase1\phase1_photosandimages\\"+folder+"\\"+BAND+"_photometry_Measurements_adaptive.csv"
@@ -143,11 +141,10 @@ for BAND in BANDS:
     y = df['Y(FITS)_T1']
     snr = df['Source_SNR_T1']
     
-    ee_darksub_array = []
+    totals = []
     ratios_array = []
     percents_array = []
     fwhm = []
-    fwhm_err = []
     
     for i in np.arange(len(df)):
         row = df.iloc[i]    
@@ -156,29 +153,25 @@ for BAND in BANDS:
         image_file = astropy.io.fits.open(path, cache=True)
         image_data = fits.getdata(path)
         image_data = image_data[:,:1065]
-        # image_data = image_data[8:-1,9:1065]
-        # x = int(row['X(FITS)_T1'])
-        # y = int(row['Y(FITS)_T1'])
         x = int(row['X(FITS)_T1'])
         y = int(row['Y(FITS)_T1'])
-        # x_star = x
-        # y_star = y
-        # fwhm.append(measure_fwhm(image_data, x_star, y_star))
+        
+        x_star = x
+        y_star = y
+        # fwhm.append(measure_fwhm(image_data, x, y))
         result=measure_fwhm(image_data, x, y)
         fwhm.append(result[0])
         x_star=result[1]
         y_star=result[2]
-        fwhm_err.append(result[3])
-        
         
         reduced_image_data = image_data
         # Step 3: Subtract the local background
         image_data_bkg_subtracted = subtract_local_background(reduced_image_data, x_star, y_star)
         # Step 4: Calculate the encircled energy
-        radii, encircled_energy = calculate_encircled_energy(image_data_bkg_subtracted, x_star, y_star)
+        radii, encircled_energy,total,big_total = calculate_encircled_energy(image_data_bkg_subtracted, x_star, y_star)
         # Step 5: Plot the encircled energy
         #plot_encircled_energy(radii, encircled_energy)    
-        ee_darksub_array.append(encircled_energy)
+        totals.append(total)
         ratios_array.append(encircled_energy)
         percents_array.append(encircled_energy*100)
     
@@ -186,24 +179,26 @@ for BAND in BANDS:
         # ratios_array.append(ratios)
         # percents_array.append(percents)
     fwhm = np.array(fwhm)
-    eightyp = []
     enc_2 = []
     for i in percents_array:
-        enc_2.append(i[np.where(np.array(radii)>=2)[0][0]])
-        eightyp.append(radii[np.where(i>80)[0][0]])
+        enc_2.append(i[1])
+    totals_2 = []
+    for i in totals:
+         totals_2.append(i[1])
+        
     # plt.figure()
     # plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],c=enc_2,s=300)
     # plt.colorbar()
-    # plt.xlim((0,1065))
+    # plt.xlim((0,1175))
     # plt.ylim((0,1033))
-    # plt.title(BAND+' Percent Encircled energy in 2 pixels by field position')
+    # plt.title(BAND+' Percent Enclosed energy in 2 pixels by field position')
     # plt.xlabel('X Pixels')
     # plt.ylabel('Y Pixels')
     
     # plt.figure()
     # plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],s=fwhm*100,c=fwhm,norm='linear',cmap='gist_rainbow')
     # plt.colorbar()
-    # plt.xlim((0,1065))
+    # plt.xlim((0,1175))
     # plt.ylim((0,1033))
     # plt.title(BAND+' FWHM by field position')
     # plt.xlabel('X Pixels')
@@ -224,7 +219,7 @@ for BAND in BANDS:
     '''
 
     # 
-    # grid_x, grid_y = np.mgrid[:1033, :1065]
+    # grid_x, grid_y = np.mgrid[:1033, :1175]
     # points = (np.array((df['Y(FITS)_T1'],df['X(FITS)_T1']))).transpose() #flipped x and y here because I had to for it to work
     # values = np.array(fwhm)
     # grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
@@ -235,7 +230,7 @@ for BAND in BANDS:
     # plt.subplot(221)
     # plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],c=fwhm,cmap='viridis_r')
     # plt.colorbar()
-    # plt.xlim((0,1065))
+    # plt.xlim((0,1175))
     # plt.ylim((0,1033))
     # plt.title(BAND+'Data Acquired')
     # plt.subplot(222)
@@ -253,7 +248,7 @@ for BAND in BANDS:
     # plt.suptitle(BAND+' FWHM mesh interpolation')
     # plt.show()
     
-    # grid_x, grid_y = np.mgrid[:1033, :1065]
+    # grid_x, grid_y = np.mgrid[:1033, :1175]
     # points = (np.array((df['Y(FITS)_T1'],df['X(FITS)_T1']))).transpose() #flipped x and y here because I had to for it to work
     # values = np.array(enc_2)
     # grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
@@ -264,7 +259,7 @@ for BAND in BANDS:
     # plt.subplot(221)
     # plt.scatter(df['X(FITS)_T1'],df['Y(FITS)_T1'],c=enc_2)
     # plt.colorbar()
-    # plt.xlim((0,1065))
+    # plt.xlim((0,1175))
     # plt.ylim((0,1033))
     # plt.title(BAND+'Data Acquired')
     # plt.subplot(222)
@@ -290,9 +285,9 @@ for BAND in BANDS:
     rad = radii
     #radial field calculation
     if BAND == 'FUV':
-        FOV_center = 450,500
+        FOV_center = 500,500
     elif BAND == 'NUV':
-        FOV_center = 540,400
+        FOV_center = 500,500
     x = df['X(FITS)_T1']
     y = df['Y(FITS)_T1']
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
@@ -302,10 +297,10 @@ for BAND in BANDS:
     #     if r_arcmin[i] <= 20:
     #         plt.plot(rad*13,ratios_array[int(i)],label='Radius = '+'{:.1f}'.format(r_arcmin[i])+"'",marker='x')
     # # plt.legend()
-    # # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean Encircled energy',marker='o')
-    # plt.title(BAND+' Encircled energy for all points within 40'' FOV (estimated position)')
+    # # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
+    # plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
     # plt.xlabel('Radius (um)')
-    # plt.ylabel('Percent Encircled energy (%)')
+    # plt.ylabel('Percent enclosed energy (%)')
     # plt.xlim((0,26))
     
     # # means.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the means for later analysis
@@ -343,10 +338,7 @@ for BAND in BANDS:
     '''
     making plots of the encircled energy by radius and FWHM by radius, a scatter plot of every measurement taken
     '''
-    if BAND == 'FUV':
-        FOV_center = 450,500
-    elif BAND == 'NUV':
-        FOV_center = 540,400
+    FOV_center = 500,500
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
     r_arcmin = r*4.9/60
     enc_2 = np.asarray(enc_2)
@@ -364,8 +356,8 @@ for BAND in BANDS:
     # plt.subplot(122)
     # plt.plot(r_arcmin,enc_2,'o')
     # plt.xlabel('Radius from image center (arcmin)')
-    # plt.ylabel('Encircled Energy (%)')
-    # plt.title(BAND+' Encircled energy in 2 pixels vs Field Position')
+    # plt.ylabel('Enclosed Energy (%)')
+    # plt.title(BAND+' Enclosed energy in 2 pixels vs Field Position')
     # plt.axvline(20,color='r',label='SPARCS FOV')
     # plt.legend()
     
@@ -381,35 +373,32 @@ for BAND in BANDS:
     What we need to do now is take the samples that were at each field location,
     and then take the average/median values with standard deviations/median absolute deviation to get error bars. Which images are combined is determined by manually looking at the image sequence and just keeping track of which images corresponded to which location. This mattered more for the FUV data set as there were quite a few messups in the sequencing.
     '''
-    eightyp_mean=[]
-    eightyp_std=[]
+    totals=np.asarray(totals_2)
     fwhm_means=[]
     fwhm_stds=[]
     fwhm_meds=[]
     fwhm_mads=[]
-    fwhm_errs=[]
     enc_means = []
     enc_stds = []
     enc_meds=[]
     enc_mads=[]
+    total_mean = []
     xs = []
     ys = []
     rs = []
     ratios_means = []
     ratios_array=np.asarray(ratios_array)
-    fwhm_err = np.array(fwhm_err)
-    eightyp=np.asarray(eightyp)
     i=0
     
     if BAND == 'FUV':
         while i < len(x):
             if i == 15:
                 index = [i]
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -418,17 +407,15 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(i)
                 i+=1
             if i == 16:
                 index = np.arange(i,i+4)
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -437,17 +424,15 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(index)
                 i+=4
             if i == 215:
                 index = np.arange(i,i+6)
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -456,17 +441,15 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(index)
                 i+=6
             else:
                 index = np.arange(i,i+5)
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -475,19 +458,17 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(index)
                 i+=5
     if BAND == 'NUV':
         while i < len(x):
             if i == 140:
                 index = np.arange(i,i+4)
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -496,17 +477,15 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(index)
                 i+=4
             else:
                 index = np.arange(i,i+5)
+                total_mean.append(np.mean(totals[index]))
                 fwhm_means.append(np.mean(fwhm[index]))
                 fwhm_stds.append(np.std(fwhm[index]))
                 fwhm_meds.append(np.median(fwhm[index]))
                 fwhm_mads.append(stats.median_abs_deviation(fwhm[index]))
-                fwhm_errs.append(np.sqrt(sum(np.array(fwhm_err)[index]**2)))#propogation of errror in mean
                 enc_means.append(np.mean(enc_2[index]))
                 enc_stds.append(np.std(enc_2[index]))
                 enc_meds.append(np.median(enc_2[index]))
@@ -515,15 +494,12 @@ for BAND in BANDS:
                 ys.append(np.mean(y[index]))
                 rs.append(np.mean(r[index]))
                 ratios_means.append(np.mean(ratios_array[index],axis=0))
-                eightyp_mean.append(np.mean(eightyp[index]))
-                eightyp_std.append(np.std(eightyp[index]))
                 # print(index)
                 i+=5
     fwhm_means=np.asarray(fwhm_means)
     fwhm_stds=np.asarray(fwhm_stds)
     fwhm_meds=np.asarray(fwhm_meds)
     fwhm_mads=np.asarray(fwhm_mads)
-    fwhm_errs=np.asarray(fwhm_errs)
     enc_means =np.asarray(enc_means)
     enc_stds =np.asarray(enc_stds)
     enc_meds =np.asarray(enc_meds)
@@ -532,35 +508,35 @@ for BAND in BANDS:
     ys =np.asarray(ys)
     rs =np.asarray(rs)
     ratios_means=np.asarray(ratios_means)
-    eightyp_mean=np.asarray(eightyp_mean)
-    eightyp_std=np.asarray(eightyp_std)
+    total_mean=np.asarray(total_mean)
+    
     '''
     Now we plot the data as functions of 2D field position and as radius from the center of the image frame. Also prints out text desribing the max an min of the enc energy and fwhm in the 40' FOV as well as the percent change between max and min.
     '''
     plt.figure()        
-    plt.scatter(xs,ys,c=enc_means,s=300)
-    plt.colorbar(label='Energy Encircled (%)')
-    plt.xlim((0,1065))
+    plt.scatter(xs,ys,c=enc_meds,s=300)
+    plt.colorbar()
+    plt.xlim((0,1175))
     plt.ylim((0,1033))
-    plt.title(BAND+' mean Encircled Energy in 3 pixels by field position')
+    plt.title(BAND+' Median Enclosed energy % in 2 pixels by field position')
     plt.xlabel('X Pixels')
     plt.ylabel('Y Pixels')
     
     plt.figure()
-    plt.scatter(xs,ys,c=fwhm_means,s=300,norm='linear',cmap='viridis_r')
-    plt.colorbar(label='FWHM (pixels)')
-    plt.xlim((0,1065))
+    plt.scatter(xs,ys,c=fwhm_meds,s=300,norm='linear',cmap='viridis_r')
+    plt.colorbar()
+    plt.xlim((0,1175))
     plt.ylim((0,1033))
-    plt.title(BAND+' mean spot size by field position')
+    plt.title(BAND+' Median FWHM by field position')
     plt.xlabel('X Pixels')
     plt.ylabel('Y Pixels')
     
     plt.figure()
-    plt.scatter(xs,ys,c=(fwhm_means*13*1e-3)/2.355,s=300,norm='linear',cmap='viridis_r')
+    plt.scatter(xs,ys,c=(fwhm_meds*13*1e-3)/2.355,s=300,norm='linear',cmap='viridis_r')
     plt.colorbar(label='Millimeters RMS')
-    plt.xlim((0,1065))
+    plt.xlim((0,1175))
     plt.ylim((0,1033))
-    plt.title(BAND+' mean RMS spot size by field position')
+    plt.title(BAND+' Median RMS by field position')
     plt.xlabel('X Pixels')
     plt.ylabel('Y Pixels')
     
@@ -570,30 +546,29 @@ for BAND in BANDS:
     plt.xlabel('Radius from image center (arcmin)')
     plt.ylabel('FWHM (pix)')
     plt.title(BAND+' Mean FWHM vs Field Position')
-    plt.axvline(20,color='r',label=f'SPARCS FOV,\n Center {FOV_center}')
-    # plt.errorbar(rs_arcmin,fwhm_means,yerr=fwhm_mads,capsize=3,fmt='o')
+    plt.axvline(20,color='r',label='SPARCS FOV')
+    # plt.errorbar(rs_arcmin,fwhm_meds,yerr=fwhm_mads,capsize=3,fmt='o')
     plt.errorbar(rs_arcmin,fwhm_means,yerr=fwhm_stds,capsize=3,fmt='o')
     plt.xlim((0,50))
     plt.ylim((2,7))
-    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
     plt.legend()
     
     plt.subplot(122)
     plt.xlabel('Radius from image center (arcmin)')
-    plt.ylabel('Encircled Energy (%)')
-    plt.title(BAND+' Mean Encircled energy % in 2 pixels vs Field Position')
-    plt.axvline(20,color='r',label=f'SPARCS FOV,\n Center {FOV_center}')
-    # plt.errorbar(rs_arcmin,enc_means,yerr=enc_mads,capsize=3,fmt='o')
-    plt.errorbar(rs_arcmin,enc_means,yerr=enc_stds,capsize=3,fmt='o')
+    plt.ylabel('Enclosed Energy (%)')
+    plt.title(BAND+' Mean Enclosed energy % in 2 pixels vs Field Position')
+    plt.axvline(20,color='r',label='SPARCS FOV')
+    # plt.errorbar(rs_arcmin,enc_meds,yerr=enc_mads,capsize=3,fmt='o')
+    yerr = enc_means*np.sqrt((np.sqrt(total_mean)/total_mean)**2+(np.sqrt(big_total)/big_total)**2)
+    plt.errorbar(rs_arcmin,enc_means,yerr=yerr,capsize=3,fmt='o')
     plt.xlim((0,50))
-    plt.ylim((20,80))
-    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
+    plt.ylim((20,75))
     plt.legend()
     
     fov = np.where(rs_arcmin <= 20)[0]
-    enc_fov = enc_means[fov]
+    enc_fov = enc_meds[fov]
     enc_stds_fov = enc_stds[fov]
-    fwhm_fov = fwhm_means[fov]
+    fwhm_fov = fwhm_meds[fov]
     fwhm_stds_fov = fwhm_stds[fov]
     
     def percent_change(x,x_err):
@@ -608,7 +583,7 @@ for BAND in BANDS:
     
     print(f'Enc max = {max(enc_fov):.1f}, min = {min(enc_fov):.1f}')
     enc_p,enc_sig_p=percent_change(enc_fov,enc_stds_fov)
-    print(f'Encircled energy change: {enc_p:.1f}% +/-{enc_sig_p:.1f}%')
+    print(f'Enclosed energy change: {enc_p:.1f}% +/-{enc_sig_p:.1f}%')
     
     print(f'FWHM max = {max(fwhm_fov):.1f}, min = {min(fwhm_fov):.1f}')
     fwhm_p,fwhm_sig_p=percent_change(fwhm_fov,fwhm_stds_fov)
@@ -619,18 +594,18 @@ for BAND in BANDS:
     '''
     making a mesh from the average/median measurements at each field postion. The meshes interpolate between the measurement positions with 3 different methods to make a full frame map of the performance metrics.
     '''
-    grid_x, grid_y = np.mgrid[:1033, :1065]
+    grid_x, grid_y = np.mgrid[:1033, :1175]
     points = (np.array((ys,xs))).transpose() #flipped x and y here because I had to for it to work
-    values = np.array(fwhm_means)
+    values = np.array(fwhm_meds)
     grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
     grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
     grid_z2 = griddata(points, values, (grid_x, grid_y), method='cubic')
     
     plt.figure()
     plt.subplot(221)
-    plt.scatter(xs,ys,c=fwhm_means,cmap='viridis_r')
+    plt.scatter(xs,ys,c=fwhm_meds,cmap='viridis_r')
     plt.colorbar()
-    plt.xlim((0,1065))
+    plt.xlim((0,1175))
     plt.ylim((0,1033))
     plt.title(BAND+'Data Acquired')
     plt.subplot(222)
@@ -645,25 +620,25 @@ for BAND in BANDS:
     plt.imshow(grid_z2,origin='lower',cmap='viridis_r')
     plt.colorbar()
     plt.title('Cubic')
-    plt.suptitle(BAND+' FWHM Mean mesh interpolation')
+    plt.suptitle(BAND+' FWHM median mesh interpolation')
     plt.show()
     
     plt.figure()
-    plt.title(BAND+' FWHM linear interpolation')
-    plt.imshow(grid_z1,origin='lower',cmap='viridis_r')
-    plt.colorbar(label='FWHM (pixels)')
+    plt.title(BAND+' FWHM median cubic mesh interpolation')
+    plt.imshow(grid_z2,origin='lower',cmap='viridis_r')
+    plt.colorbar()
     
     
-    values = np.array(enc_means)
+    values = np.array(enc_meds)
     grid_z0 = griddata(points, values, (grid_x, grid_y), method='nearest')
     grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
     grid_z2 = griddata(points, values, (grid_x, grid_y), method='cubic')
     
     plt.figure()
     plt.subplot(221)
-    plt.scatter(xs,ys,c=enc_means)
+    plt.scatter(xs,ys,c=enc_meds)
     plt.colorbar()
-    plt.xlim((0,1065))
+    plt.xlim((0,1175))
     plt.ylim((0,1033))
     plt.title(BAND+'Data Acquired')
     plt.subplot(222)
@@ -678,14 +653,8 @@ for BAND in BANDS:
     plt.imshow(grid_z2,origin='lower')
     plt.colorbar()
     plt.title('Cubic')
-    plt.suptitle(BAND+' Encircled Energy mesh interpolation')
+    plt.suptitle(BAND+' Encircled Energy median mesh interpolation')
     plt.show()
-    
-    plt.figure()
-    plt.title(BAND+' Encircled Energy linear interpolation')
-    plt.imshow(grid_z1,origin='lower')
-    plt.colorbar(label = 'Energy Encircled (%)')
-    
 
     #%%
     '''
@@ -697,10 +666,10 @@ for BAND in BANDS:
     #     if rs_arcmin[i] <= 20:
     #         plt.plot(rad*13,ratios_means[int(i)],label='Radius = '+'{:.1f}'.format(rs_arcmin[i])+"'",marker='x')
     # # plt.legend()
-    # # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean Encircled energy',marker='o')
-    # plt.title(BAND+' Encircled energy for all points within 40'' FOV (estimated position)')
+    # # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
+    # plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
     # plt.xlabel('Radius (um)')
-    # plt.ylabel('Percent Encircled energy (%)')
+    # plt.ylabel('Percent enclosed energy (%)')
     # plt.xlim((0,130))
     
     # # meds.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the meds for later analysis
@@ -733,8 +702,7 @@ for BAND in BANDS:
     # plt.legend()
     
     # print(np.min(fwhm))
- 
-  #%% the whole dataset rather than averages and std deviations
+ #%% the whole dataset rather than averages and std deviations
     x = df['X(FITS)_T1']
     y = df['Y(FITS)_T1']
     r = np.sqrt((x-FOV_center[0])**2+(y-FOV_center[1])**2)
@@ -744,60 +712,21 @@ for BAND in BANDS:
     plt.subplot(121)
     plt.xlabel('Radius from image center (arcmin)')
     plt.ylabel('FWHM (pix)')
-    plt.title(BAND+' Raw FWHM vs Field Position')
+    plt.title(BAND+' Mean FWHM vs Field Position')
     plt.axvline(20,color='r',label='SPARCS FOV')
-    # plt.errorbar(rs_arcmin,fwhm_means,yerr=fwhm_mads,capsize=3,fmt='o')
-    plt.errorbar(r_arcmin,fwhm,fwhm_err,capsize=3,fmt='o')
+    # plt.errorbar(rs_arcmin,fwhm_meds,yerr=fwhm_mads,capsize=3,fmt='o')
+    plt.errorbar(r_arcmin,fwhm,capsize=3,fmt='o')
     plt.xlim((0,50))
     plt.ylim((2,7))
     plt.legend()
     
     plt.subplot(122)
     plt.xlabel('Radius from image center (arcmin)')
-    plt.ylabel('Encircled Energy (%)')
-    plt.title(BAND+' Raw Encircled energy % in 2 pixels vs Field Position')
+    plt.ylabel('Enclosed Energy (%)')
+    plt.title(BAND+' Mean Enclosed energy % in 2 pixels vs Field Position')
     plt.axvline(20,color='r',label='SPARCS FOV')
-    # plt.errorbar(rs_arcmin,enc_means,yerr=enc_mads,capsize=3,fmt='o')
+    # plt.errorbar(rs_arcmin,enc_meds,yerr=enc_mads,capsize=3,fmt='o')
     plt.errorbar(r_arcmin,enc_2,capsize=3,fmt='o')
     plt.xlim((0,50))
-    plt.ylim((20,100))
+    plt.ylim((20,75))
     plt.legend()
-    
-    plt.figure()
-    plt.scatter(r_arcmin,eightyp,label=BAND)
-    plt.title('>80% Encircled Energy aperture vs FOV radius: '+BAND)
-    plt.axvline(20,color='r',label='SPARCS FOV')
-    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
-    plt.legend()
-    plt.xlabel('FOV Radius (arcmin)')
-    plt.ylabel('Aperture Radius (pixels)')
-
-    plt.figure(100)
-    if BAND == 'FUV':
-        m='o'
-    elif BAND == 'NUV':
-        m='^'
-    plt.errorbar(r_arcmin,eightyp,label=BAND,fmt=m,capsize=3)
-    plt.title('≥80% Encircled Energy aperture radius')
-    plt.xlabel('Field Radius (arcmin)')
-    plt.ylabel('Aperture Radius (pixels)')
-    plt.legend()
-    plt.xlim(0,20)
-    plt.ylim(2,4)
-    plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
-    
-    # plt.figure()
-    # plt.scatter(xs,ys,s=100,c=eightyp_mean,cmap='viridis_r')
-    # plt.colorbar()
-    
-    plt.figure()
-    points = (np.array((ys,xs))).transpose() #flipped x and y here because I had to for it to work
-    values = np.array(eightyp_mean)
-    grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
-    plt.imshow(grid_z1,origin='lower',cmap='viridis_r')
-    plt.colorbar(label = 'Aperture Radius (pixels)')
-    plt.title('≥80% Encircled Energy Radius Across FOV')
-    plt.xlabel('X Pixels')
-    plt.ylabel('Y Pixels')
-    
-    

@@ -36,7 +36,7 @@ center    All data before 031824 was with the 2um pinhole
 
 means = []
 stds = []
-BAND = 'NUV'#,'NUV']
+BAND = 'FUV'#,'NUV']
 if BAND == 'FUV':
     folder = ['pre_focus','minus_0.01','plus_0.01','plus_0.015','plus_0.025','final']
 else:
@@ -136,7 +136,7 @@ for folder in folder:
     plt.colorbar()
     plt.xlim((0,1175))
     plt.ylim((0,1033))
-    plt.title(BAND+' Percent Enclosed energy in 1 pixels by field position')
+    plt.title(BAND+' Percent Encircled energy in 1 pixels by field position')
     
     #radial field calculation
     if BAND == 'FUV':
@@ -152,10 +152,10 @@ for folder in folder:
         if r_arcmin[i] <= 20:
             plt.plot(rad,ratios_array[int(i)],label='Radius = '+'{:.1f}'.format(r_arcmin[i])+"'",marker='x')
     # plt.legend()
-    # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean enclosed energy',marker='o')
-    plt.title(BAND+' Enclosed energy for all points within 40'' FOV (estimated position)')
+    # plt.plot(rad,np.mean(ratios_array,axis=0),label='Mean Encircled energy',marker='o')
+    plt.title(BAND+' Encircled energy for all points within 40'' FOV (estimated position)')
     plt.xlabel('Radius (um)')
-    plt.ylabel('Percent enclosed energy (%)')
+    plt.ylabel('Percent Encircled energy (%)')
     plt.xlim((0,20))
     
     means.append(np.mean(ratios_array,axis=0)) #this is what I am using to collect all of the means for later analysis
@@ -168,9 +168,9 @@ if BAND == 'FUV':
     labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','Final, +0.01"']
     for i in np.arange(len(means)):
         plt.errorbar(rad,means[i]*100,yerr=stds[i]*100,fmt=':o',capsize=3,label=labels[i])
-    plt.title('FUV Enclosed energy with Focusing')
+    plt.title('FUV Encircled energy with Focusing')
     plt.xlabel('Radius (pixels)')
-    plt.ylabel('Enclosed energy (%)')
+    plt.ylabel('Encircled energy (%)')
     plt.xlim(0,5)
     plt.legend()
 if BAND =='NUV':
@@ -178,8 +178,8 @@ if BAND =='NUV':
     labels = ['Pre-focus, 0"','-0.01"','+0.01"','+0.015"','+0.025"','0"','Final, 0"']
     for i in np.arange(len(means)):
         plt.errorbar(rad,means[i]*100,yerr=stds[i]*100,fmt=':o',capsize=3,label=labels[i])
-    plt.title('NUV Enclosed energy with Focusing')
+    plt.title('NUV Encircled energy with Focusing')
     plt.xlabel('Radius (pixels)')
-    plt.ylabel('Enclosed energy (%)')
+    plt.ylabel('Encircled energy (%)')
     plt.xlim(0,5)
     plt.legend()

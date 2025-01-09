@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 
 fuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\fuv_throughput_medians.csv")
 nuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\nuv_throughput_medians.csv")
-photo = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data.csv")
+photo = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data_newerr.csv")
 
 
 #%%A better way to do things
@@ -25,6 +25,11 @@ with those numbers. Basically do the same thing as before but rather than use th
 normalized response actually use the calculated values for photons in the aperture
 and the error to get e/p for the payload as a whole
 '''
+
+    # if BAND == 'FUV':
+    #     FOV_center = 450,500
+    # elif BAND == 'NUV':
+    #     FOV_center = 540,400
 
 fuv_ratios = []
 fuv_ratio_errors = []
@@ -38,7 +43,7 @@ for index,row in fuv.iterrows():
     fuv_ratios.append(ratio)
     fuv_ratio_errors.append(ratio_err)
 
-FOV_center = 500,500
+FOV_center = 450,500
 r = np.sqrt((fuv['X(FITS)_T1']-FOV_center[0])**2+(fuv['Y(FITS)_T1']-FOV_center[1])**2)
 fuv_r_arcmin = r*4.9/60
 
@@ -53,7 +58,7 @@ for index,row in nuv.iterrows():
     ratio_err = ratio*np.sqrt((meas_err/meas)**2+(inc_err/incident)**2)
     nuv_ratios.append(ratio)
     nuv_ratio_errors.append(ratio_err)
-FOV_center = 500,500
+FOV_center = 540,400
 r = np.sqrt((nuv['X(FITS)_T1']-FOV_center[0])**2+(nuv['Y(FITS)_T1']-FOV_center[1])**2)
 nuv_r_arcmin = r*4.9/60
 
@@ -77,16 +82,17 @@ plt.xlabel('Radius (arcmin)')
 plt.ylabel('Responsivity (e-/photon)')
 plt.errorbar(nuv_r_arcmin,nuv_ratios,nuv_ratio_errors,fmt='o',capsize=3,label='NUV')
 plt.errorbar(fuv_r_arcmin,fuv_ratios,fuv_ratio_errors,fmt='o',capsize=3,label='FUV')
-plt.legend()
+plt.legend(loc='center')
 
 plt.figure()
-plt.title('Responsivity vs. Radius from field center')
+plt.title('Response vs. Radius from field center')
 plt.xlabel('Radius (arcmin)')
-plt.ylabel('Responsivity (e-/photon)')
-plt.errorbar(nuv_r_arcmin,nuv_ratios,nuv_ratio_errors,fmt='o',capsize=3,label='NUV')
+plt.ylabel('Response (e-/photon)')
 plt.errorbar(fuv_r_arcmin,fuv_ratios,fuv_ratio_errors,fmt='o',capsize=3,label='FUV')
-plt.axhline(np.median(fuv_ratios)*1.1,ls=':',color='orange',label='FUV Median +/- 10%')
-plt.axhline(np.median(fuv_ratios)*0.9,ls=':',color='orange')
-plt.axhline(np.median(nuv_ratios)*1.1,ls=':',label='NUV Median +/- 10%')
-plt.axhline(np.median(nuv_ratios)*0.9,ls=':')
-plt.legend(loc='upper right')
+plt.errorbar(nuv_r_arcmin,nuv_ratios,nuv_ratio_errors,fmt='o',capsize=3,label='NUV')
+plt.axhline(np.median(fuv_ratios)*1.1,ls=':',label='FUV Median +/- 10%')
+plt.axhline(np.median(fuv_ratios)*0.9,ls=':')
+plt.axhline(np.median(nuv_ratios)*1.1,ls=':',color='C1',label='NUV Median +/- 10%')
+plt.axhline(np.median(nuv_ratios)*0.9,ls=':',color='C1')
+plt.legend(ncols=2, loc='center', bbox_to_anchor=(0.5, 0.4))
+plt.grid(True,linestyle='-', linewidth=0.5,alpha=0.5)
