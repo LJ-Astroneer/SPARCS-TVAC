@@ -415,6 +415,37 @@ plt.ylabel('Throughput (%)')
 plt.title('Throughput vs Wavelength')
 plt.grid()
 plt.legend()
+#%%Add another plot using the data from David to overplot predictions on measurements
+david = pd.read_csv(r'C:/Users/logan/OneDrive - Arizona State University/SPARCS Documents/Logan Working/david_throughputs.csv')
+d_wv = david['Wavelength(nm)'][:450]
+d_fuv = david['Total FUV'][:450]
+d_nuv = david ['Total NUV'][:450]
+
+
+plt.figure(figsize=(12,10))
+plt.subplot(211)
+plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3,label='FUV')
+# plt.errorbar(fuv_wavelengths,ftp,abs(ftp_err),8/2.355,':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3,label='NUV')
+plt.plot(d_wv,d_fuv,'-o',label="David's FUV")
+plt.plot(d_wv,d_nuv,'-o',label="David's NUV")
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Throughput (%)')
+plt.title('Throughput vs Wavelength')
+plt.yscale('log')
+plt.grid()
+plt.legend()
+plt.subplot(212)
+plt.errorbar(fuv_wavelengths[:21],ftp[:21],abs(ftp_err[:21]),8/2.355,':o',capsize=3,label='FUV')
+# plt.errorbar(fuv_wavelengths,ftp,abs(ftp_err),8/2.355,':o',capsize=3)
+plt.errorbar(nuv_wavelengths,ntp,abs(ntp_err),8/2.355,':o',capsize=3,label='NUV')
+plt.plot(d_wv,d_fuv,'-o',label="David's FUV")
+plt.plot(d_wv,d_nuv,'-o',label="David's NUV")
+plt.xlabel('Wavelength (nm)')
+plt.ylabel('Throughput (%)')
+plt.title('Throughput vs Wavelength')
+plt.grid()
+plt.legend()
 #%%F it lets calculate the effective aperture too
 
 

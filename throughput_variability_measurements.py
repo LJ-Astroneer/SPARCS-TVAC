@@ -13,9 +13,9 @@ import csv
 from scipy import stats
 from scipy.optimize import curve_fit
 
-fuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\fuv_throughput_medians.csv")
-nuv = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\nuv_throughput_medians.csv")
-photo = pd.read_csv(r"C:\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data_newerr.csv")
+fuv = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\fuv_throughput_medians.csv")
+nuv = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\variability\nuv_throughput_medians.csv")
+photo = pd.read_csv(r"C:\users\logan\OneDrive - Arizona State University\SPARCS Documents\Logan Working\Phase2\Data\Throughput\photodiode_data_newerr.csv")
 
 
 #%%A better way to do things
